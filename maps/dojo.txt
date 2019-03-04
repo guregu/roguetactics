@@ -1,0 +1,8 @@
+name Dojo
+collide O/|-\@
+spaces collide
+gametype DM
+author Infernalmeep
+version 1
+width 80
+height 20

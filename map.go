@@ -50,8 +50,9 @@ func (m *Map) Contains(id ID) bool {
 }
 
 type Tile struct {
-	Ground  Glyph
-	Objects map[ID]Object
+	Ground   Glyph
+	Objects  map[ID]Object
+	Collides bool
 }
 
 func (t *Tile) Add(obj Object) {
@@ -62,17 +63,24 @@ func (t *Tile) Remove(obj Object) {
 	delete(t.Objects, obj.ID())
 }
 
-func (t *Tile) Glyph() Glyph {
-	g := t.Ground
+func (t *Tile) Top() Object {
 	z := -1
-	for _, obj := range t.Objects {
-		loc := obj.Loc()
+	var obj Object
+	for _, o := range t.Objects {
+		loc := o.Loc()
 		if loc.Z > z {
-			g = obj.Glyph()
+			obj = o
 			z = loc.Z
 		}
 	}
-	return g
+	return obj
+}
+
+func (t *Tile) Glyph() Glyph {
+	if top := t.Top(); top != nil {
+		return top.Glyph()
+	}
+	return t.Ground
 }
 
 func loadMap(name string) (*Map, error) {
@@ -93,18 +101,18 @@ func loadMap(name string) (*Map, error) {
 		if len(line) > 0 {
 			for _, r := range string(line) {
 				glyph := GlyphOf(r)
+				collides := false
 				if r == '.' || r == '#' {
 					glyph.FG = ColorGray
-					if r == '.' {
-						glyph.Blink = true
-					}
 				} else {
 					glyph.FG = ColorWhite
+					collides = true
 					// glyph.Bold = true
 				}
 				tline = append(tline, &Tile{
-					Ground:  glyph,
-					Objects: make(map[ID]Object),
+					Ground:   glyph,
+					Objects:  make(map[ID]Object),
+					Collides: collides,
 				})
 			}
 			m.Tiles = append(m.Tiles, tline)

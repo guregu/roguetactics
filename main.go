@@ -55,6 +55,9 @@ func (sesh *Sesh) do(input string) {
 func (sesh *Sesh) refresh() {
 	sesh.win.Render(sesh.disp.nextFrame())
 	render := sesh.disp.diff()
+	if render == "" {
+		return
+	}
 	fmt.Println("Render: ", strings.Replace(render, "\033", "ESC", -1))
 	io.WriteString(sesh.ssh, render)
 	sesh.setCursor(sesh.win.Cursor())
@@ -77,14 +80,17 @@ func (sesh *Sesh) Send(msg string) {
 func (sesh *Sesh) setup() {
 	glyph := GlyphOf('@')
 	glyph.FG = ColorRed
+
 	player := &Mob{
+		name:  sesh.ssh.User(),
 		glyph: glyph,
 		loc:   Loc{Map: "test", X: 10, Y: 10, Z: 10},
 	}
 	game := &GameWindow{World: sesh.world, Char: player, Sesh: sesh}
 	sesh.win = game
+	// io.WriteString(sesh.ssh, "\033[?9h") // mouse on
+	sesh.world.apply <- ListenAction{listener: sesh}
 	sesh.world.apply <- AddAction{Obj: player}
-	sesh.world.apply <- PlaceAction{ID: player.ID(), Loc: player.Loc()}
 }
 
 func (sesh *Sesh) cleanup() {
@@ -111,7 +117,7 @@ func (sesh *Sesh) Run() {
 		}
 	}()
 	sesh.setup()
-	buf := make([]byte, 8)
+	buf := make([]byte, 3)
 	for {
 		n, err := sesh.ssh.Read(buf)
 		if err != nil {
@@ -132,7 +138,6 @@ func main() {
 
 	ssh.Handle(func(s ssh.Session) {
 		sesh := NewSesh(s, world)
-		world.apply <- ListenAction{listener: sesh}
 		io.WriteString(sesh.ssh, resetScreen+cursorTo00)
 		sesh.Run()
 	})

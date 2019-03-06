@@ -110,7 +110,6 @@ func (d *Display) full() string {
 			buf += d.next[y][x].String()
 		}
 	}
-	buf += resetSGR
 	return buf
 }
 
@@ -131,9 +130,6 @@ func (d *Display) diff() string {
 				}
 			}
 		}
-	}
-	if buf != "" {
-		buf += resetSGR
 	}
 	return buf
 }
@@ -157,25 +153,46 @@ type GameWindow struct {
 }
 
 func (gw *GameWindow) Input(in string) {
-	loc := gw.Char.Loc()
-	oldLoc := loc
-	// m := gw.World.Map(loc.Map)
+	var x, y int
 	switch in {
 	case ArrowKeyUp:
-		loc.Y--
+		y--
 	case ArrowKeyDown:
-		loc.Y++
+		y++
 	case ArrowKeyLeft:
-		loc.X--
+		x--
 	case ArrowKeyRight:
-		loc.X++
+		x++
 	}
-	if loc != oldLoc {
-		gw.World.apply <- PlaceAction{ID: gw.Char.ID(), Loc: loc, Src: gw.Sesh}
+	if x != 0 || y != 0 {
+		gw.World.apply <- EnqueueAction{ID: gw.Char.ID(), Action: func(mob *Mob, world *World) {
+			loc := mob.Loc()
+			m := world.Map(loc.Map)
+			loc.X += x
+			loc.Y += y
+			target := m.TileAtLoc(loc)
+			if target.Collides {
+				gw.Sesh.Send("Ouch! You bumped into a wall.")
+				return
+			}
+			if top := target.Top(); top != nil {
+				if col, ok := top.(Collider); ok && col.Collides(world, mob.ID()) {
+					gw.Sesh.Send("You're blocked by " + col.Name() + ".")
+					return
+				}
+			}
+			m.Move(mob, loc.X, loc.Y)
+			// go func() {
+			// 	gw.World.apply <- PlaceAction{ID: gw.Char.ID(), Loc: loc, Src: gw.Sesh, Collide: true}
+			// }()
+		}}
 	}
 }
 
 func (gw *GameWindow) Render(scr [][]Glyph) {
+	if gw.Char == nil {
+		return
+	}
 	loc := gw.Char.Loc()
 	m := gw.World.Map(loc.Map)
 nextline:

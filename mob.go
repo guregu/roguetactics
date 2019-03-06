@@ -1,5 +1,9 @@
 package main
 
+import (
+// "log"
+)
+
 type Loc struct {
 	Map     string
 	X, Y, Z int
@@ -19,19 +23,22 @@ type Object interface {
 }
 
 type Ticker interface {
+	Object
 	Tick(*World, int64)
 }
 
 type Collider interface {
+	Object
 	Collides(*World, ID) bool
 	OnCollide(*World, ID) bool
 }
 
 type Mob struct {
-	id    ID
-	name  string
-	loc   Loc
-	glyph Glyph
+	id      ID
+	name    string
+	loc     Loc
+	glyph   Glyph
+	actions []func(*Mob, *World)
 }
 
 func (m *Mob) Create(w *World) {
@@ -68,3 +75,17 @@ func (m *Mob) OnCollide(_ *World, _ ID) bool {
 func (m *Mob) Move(loc Loc) {
 	m.loc = loc
 }
+
+func (m *Mob) Tick(w *World, tick int64) {
+	if len(m.actions) > 0 {
+		m.actions[0](m, w)
+		m.actions = m.actions[1:]
+	}
+}
+
+func (m *Mob) Enqueue(action func(*Mob, *World)) {
+	m.actions = append(m.actions, action)
+}
+
+var _ Ticker = &Mob{}
+var _ Object = &Mob{}

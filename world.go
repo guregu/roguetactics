@@ -74,6 +74,11 @@ func (w *World) Delete(id ID) {
 
 func (w *World) Tick() {
 	w.tick++
+	for _, obj := range w.objects {
+		if ticker, ok := obj.(Ticker); ok {
+			ticker.Tick(w, w.tick)
+		}
+	}
 }
 
 func (w *World) Run() {
@@ -86,6 +91,7 @@ func (w *World) Run() {
 			w.notify()
 		case <-ticker.C:
 			w.Tick()
+			w.notify()
 		}
 	}
 }
@@ -121,12 +127,17 @@ type AddAction struct {
 func (aa AddAction) Apply(w *World) {
 	log.Println("create action", aa.Obj)
 	w.Create(aa.Obj)
+	loc := aa.Obj.Loc()
+	if loc.Map != "" {
+		w.Map(loc.Map).TileAtLoc(loc).Add(aa.Obj)
+	}
 }
 
 type PlaceAction struct {
-	ID  ID
-	Loc Loc
-	Src *Sesh
+	ID      ID
+	Loc     Loc
+	Src     *Sesh
+	Collide bool
 }
 
 func (pa PlaceAction) Apply(w *World) {
@@ -142,7 +153,10 @@ func (pa PlaceAction) Apply(w *World) {
 		m.Add(obj)
 		return
 	}
-
+	if pa.Collide && m.TileAtLoc(pa.Loc).Collides {
+		pa.Src.Send("Ouch!")
+		return
+	}
 	m.Move(obj, pa.Loc.X, pa.Loc.Y)
 
 	if pa.Src != nil {
@@ -156,4 +170,21 @@ type RemoveAction ID
 func (ra RemoveAction) Apply(w *World) {
 	log.Println("remove action", ra)
 	w.Delete(ID(ra))
+}
+
+type EnqueueAction struct {
+	ID     ID
+	Action func(*Mob, *World)
+}
+
+func (eq EnqueueAction) Apply(w *World) {
+	obj, ok := w.objects[eq.ID]
+	if !ok {
+		fmt.Println("enqueue no ID", eq)
+	}
+	if mob, ok := obj.(*Mob); ok {
+		mob.Enqueue(eq.Action)
+	} else {
+		fmt.Println("NOT A MOB")
+	}
 }

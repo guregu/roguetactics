@@ -154,6 +154,12 @@ type GameWindow struct {
 
 func (gw *GameWindow) Input(in string) {
 	var x, y int
+	if strings.HasPrefix(in, MousePrefix) && len(in) >= 6 && in[3] == 35 {
+		x = int(in[4] - 32 - 1)
+		y = int(in[5] - 32 - 1)
+		gw.Msgs = append(gw.Msgs, fmt.Sprintf("Clicked: (%d,%d)", x, y))
+		return
+	}
 	switch in {
 	case ArrowKeyUp:
 		y--

@@ -16,6 +16,7 @@ const (
 	ArrowKeyDown  = "\033[B"
 	ArrowKeyRight = "\033[C"
 	ArrowKeyLeft  = "\033[D"
+	MousePrefix   = "\033[M"
 )
 
 var mainMap *Map
@@ -91,6 +92,8 @@ func (sesh *Sesh) setup() {
 	// io.WriteString(sesh.ssh, "\033[?9h") // mouse on
 	sesh.world.apply <- ListenAction{listener: sesh}
 	sesh.world.apply <- AddAction{Obj: player}
+
+	io.WriteString(sesh.ssh, "\033[?1000h")
 }
 
 func (sesh *Sesh) cleanup() {
@@ -117,9 +120,9 @@ func (sesh *Sesh) Run() {
 		}
 	}()
 	sesh.setup()
-	buf := make([]byte, 3)
+	buf := make([]byte, 256)
 	for {
-		n, err := sesh.ssh.Read(buf)
+		n, err := sesh.ssh.Read(buf[:])
 		if err != nil {
 			fmt.Println("Error: 1", err)
 			sesh.ssh.Exit(1)
@@ -127,7 +130,7 @@ func (sesh *Sesh) Run() {
 		}
 		if n > 0 {
 			sesh.do(string(buf[:n]))
-			fmt.Println("GOT:", buf[:n], ">>>", string(buf[:n]))
+			fmt.Println("GOT:", buf[:n], ">>>", strings.ReplaceAll(string(buf[:n]), "\033", "ESC"))
 		}
 	}
 }

@@ -1,0 +1,9 @@
+github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239 h1:kFOfPq6dUM1hTo4JG6LR5AXSUEsOjtdm0kw0FtQtMJA=
+github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYUyUczH0OGQWaF5ceTx0UBShxjsH6f8oGKYe2c=
+github.com/gliderlabs/ssh v0.1.3 h1:cBU46h1lYQk5f2Z+jZbewFKy+1zzE2aUX/ilcPDAm9M=
+github.com/gliderlabs/ssh v0.1.3/go.mod h1:U7qILu1NlMHj9FlMhZLlkCdDnU1DBEAqr0aevW3Awn0=
+github.com/nickdavies/go-astar v0.0.0-20140108070343-e72e60e44619 h1:JTISDLDp+wIM3dz09tAk+IWdchct1dh704Hm8C+zdco=
+github.com/nickdavies/go-astar v0.0.0-20140108070343-e72e60e44619/go.mod h1:EZuzuIZu9Oq2D8JX3aKPVwfA3SytDX8oQgmUUpRp4EE=
+golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25 h1:jsG6UpNLt9iAsb0S2AGW28DveNzzgmbXR+ENoPjUeIU=
+golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
+golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=

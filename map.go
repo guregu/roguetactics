@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/nickdavies/go-astar/astar"
 )
 
 type Map struct {
@@ -47,6 +49,37 @@ func (m *Map) Move(obj Object, x, y int) {
 func (m *Map) Contains(id ID) bool {
 	_, ok := m.Objects[id]
 	return ok
+}
+
+func (m *Map) Height() int {
+	return len(m.Tiles)
+}
+
+func (m *Map) Width() int {
+	return len(m.Tiles[0])
+}
+
+func (m *Map) FindPath(fromX, fromY, toX, toY int) []Loc {
+	a := astar.NewAStar(m.Height(), m.Width())
+	for y := 0; y < m.Height(); y++ {
+		for x := 0; x < m.Width(); x++ {
+			tile := m.TileAt(x, y)
+			if tile.Collides {
+				a.FillTile(astar.Point{y, x}, -1)
+			}
+		}
+	}
+	p2p := astar.NewPointToPoint()
+	path := a.FindPath(p2p, []astar.Point{astar.Point{fromY, fromX}}, []astar.Point{astar.Point{toY, toX}})
+
+	var locs []Loc
+	for path != nil {
+		if !(path.Col == fromX && path.Row == fromY) {
+			locs = append(locs, Loc{Map: m.Name, X: path.Col, Y: path.Row})
+		}
+		path = path.Parent
+	}
+	return locs
 }
 
 type Tile struct {

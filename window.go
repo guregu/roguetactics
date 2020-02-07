@@ -142,7 +142,9 @@ func (d *Display) nextFrame() [][]Glyph {
 type Window interface {
 	Render(scr [][]Glyph)
 	Cursor() (x, y int)
-	Input(string)
+	Input(string) bool
+	Click(x, y int) bool
+	ShouldRemove() bool
 }
 
 type GameWindow struct {
@@ -152,14 +154,25 @@ type GameWindow struct {
 	Msgs  []string
 }
 
-func (gw *GameWindow) Input(in string) {
-	var x, y int
-	if strings.HasPrefix(in, MousePrefix) && len(in) >= 6 && in[3] == 35 {
-		x = int(in[4] - 32 - 1)
-		y = int(in[5] - 32 - 1)
-		gw.Msgs = append(gw.Msgs, fmt.Sprintf("Clicked: (%d,%d)", x, y))
-		return
+func (gw *GameWindow) Input(in string) bool {
+	if in[0] == 13 {
+		// enter key
+		gw.Sesh.PushWindow(&ChatWindow{prompt: "Chat: "})
+		return true
 	}
+	switch in {
+	case "Q":
+		gw.Sesh.ssh.Exit(0)
+		return true
+	case "R":
+		gw.Sesh.redraw()
+		return true
+	case "m":
+		gw.Sesh.PushWindow(&MoveWindow{World: gw.World, Char: gw.Char, Range: 3})
+		return true
+	}
+
+	var x, y int
 	switch in {
 	case ArrowKeyUp:
 		y--
@@ -193,6 +206,28 @@ func (gw *GameWindow) Input(in string) {
 			// }()
 		}}
 	}
+	return true
+}
+
+func enqueueMove(world *World, mob *Mob, x, y int) {
+	world.apply <- EnqueueAction{ID: mob.ID(), Action: func(mob *Mob, world *World) {
+		loc := mob.Loc()
+		m := world.Map(loc.Map)
+		loc.X = x
+		loc.Y = y
+		target := m.TileAtLoc(loc)
+		if target.Collides {
+			// gw.Sesh.Send("Ouch! You bumped into a wall.")
+			return
+		}
+		if top := target.Top(); top != nil {
+			if col, ok := top.(Collider); ok && col.Collides(world, mob.ID()) {
+				// gw.Sesh.Send("You're blocked by " + col.Name() + ".")
+				return
+			}
+		}
+		m.Move(mob, loc.X, loc.Y)
+	}}
 }
 
 func (gw *GameWindow) Render(scr [][]Glyph) {
@@ -226,6 +261,15 @@ nextline:
 	copyString(scr[len(scr)-1], "Guest (HP: 42/42, MP: 100/100)", true)
 }
 
+func (gw *GameWindow) ShouldRemove() bool {
+	return false
+}
+
+func (gw *GameWindow) Click(x, y int) bool {
+	gw.Msgs = append(gw.Msgs, fmt.Sprintf("Clicked: (%d,%d)", x, y))
+	return true
+}
+
 func copyString(dst []Glyph, src string, padRight bool) {
 	x := 0
 	for _, r := range src {
@@ -252,8 +296,145 @@ func (gw *GameWindow) Cursor() (x, y int) {
 	return loc.X, loc.Y
 }
 
+type ChatWindow struct {
+	prompt string
+	input  string
+	done   bool
+}
+
+/*
+type Window interface {
+	Render(scr [][]Glyph)
+	Cursor() (x, y int)
+	Input(string) bool
+	Click(x, y int) bool
+	ShouldRemove() bool
+}
+*/
+
+func (cw *ChatWindow) Render(scr [][]Glyph) {
+	bottom := scr[len(scr)-1]
+	text := cw.prompt + cw.input
+	copyString(bottom, text, true)
+}
+
+func (cw *ChatWindow) Cursor() (x, y int) {
+	return len(cw.prompt) + len(cw.input), 24
+}
+
+func (cw *ChatWindow) Input(input string) bool {
+	switch input[0] {
+	case 13: // ENTER
+		cw.done = true
+		fmt.Println("Chat:", cw.input)
+		return true
+	case 27: // ESC
+		cw.done = true
+		return true
+	case 127: // BS
+		if len(cw.input) > 0 {
+			cw.input = cw.input[:len(cw.input)-1]
+		}
+		return true
+	}
+	if input == ArrowKeyLeft || input == ArrowKeyRight || input == ArrowKeyUp || input == ArrowKeyDown {
+		return true
+	}
+	cw.input += input
+	return true
+}
+
+func (cw *ChatWindow) Click(x, y int) bool {
+	return false
+}
+
+func (cw *ChatWindow) ShouldRemove() bool {
+	return cw.done
+}
+
+type MoveWindow struct {
+	World *World
+	Char  Object
+	Range int
+	Self  bool
+	done  bool
+}
+
+func (mw *MoveWindow) Render(scr [][]Glyph) {
+	loc := mw.Char.Loc()
+	m := mw.World.Map(loc.Map)
+	for y := loc.Y - mw.Range; y <= loc.Y+mw.Range; y++ {
+		if y < 0 {
+			continue
+		}
+		if y >= m.Height() {
+			break
+		}
+		for x := loc.X - mw.Range; x <= loc.X+mw.Range; x++ {
+			if x < 0 {
+				continue
+			}
+			if x >= m.Width() {
+				break
+			}
+			if !mw.Self && loc.X == x && loc.Y == y {
+				continue
+			}
+			if abs(loc.X-x)+abs(loc.Y-y) > mw.Range {
+				continue
+			}
+			tile := m.TileAt(x, y)
+			top := tile.Top()
+			if !tile.Collides && top == nil {
+				scr[y][x].BG = ColorBlue
+			}
+		}
+	}
+	copyString(scr[len(scr)-1], "Move", true)
+}
+
+func (mw *MoveWindow) Cursor() (x, y int) {
+	loc := mw.Char.Loc()
+	return loc.X, loc.Y
+}
+
+func (mw *MoveWindow) Input(input string) bool {
+	if len(input) == 1 {
+		switch input[0] {
+		case 27: // ESC
+			mw.done = true
+			return true
+		}
+	}
+	return true
+}
+
+func (mw *MoveWindow) Click(x, y int) bool {
+	fmt.Println("move click", x, y)
+	loc := mw.Char.Loc()
+	m := mw.World.Map(loc.Map)
+	path := m.FindPath(loc.X, loc.Y, x, y)
+	fmt.Println("path:", path)
+	for _, loc := range path {
+		enqueueMove(mw.World, mw.Char.(*Mob), loc.X, loc.Y)
+	}
+	mw.done = true
+	return true
+}
+
+func (mw *MoveWindow) ShouldRemove() bool {
+	return mw.done
+}
+
 const (
 	ColorRed   = 1
-	ColorGray  = 237
+	ColorBlue  = 4
 	ColorWhite = 15
+	ColorGray  = 237
+)
+
+var (
+	_ Window = (*GameWindow)(nil)
+	_ Window = (*ChatWindow)(nil)
+	_ Window = (*MoveWindow)(nil)
 )

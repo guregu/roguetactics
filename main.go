@@ -17,6 +17,9 @@ const (
 	ArrowKeyRight = "\033[C"
 	ArrowKeyLeft  = "\033[D"
 	MousePrefix   = "\033[M"
+
+	// https://www.xfree86.org/current/ctlseqs.html#Mouse%20Tracking
+	EnableMouseReporting = "\033[?1000h"
 )
 
 var mainMap *Map
@@ -24,6 +27,7 @@ var mainMap *Map
 type Sesh struct {
 	x, y  int
 	world *World
+	ui    []Window
 	win   *GameWindow
 	ssh   ssh.Session
 	disp  *Display
@@ -42,32 +46,63 @@ func (sesh *Sesh) resize(win ssh.Window) {
 }
 
 func (sesh *Sesh) do(input string) {
-	switch input {
-	case "Q":
-		sesh.ssh.Exit(0)
-		return
-	case "R":
-		sesh.redraw()
-		return
+	if strings.HasPrefix(input, MousePrefix) && len(input) >= 6 && input[3] == 35 {
+		x := int(input[4] - 32 - 1)
+		y := int(input[5] - 32 - 1)
+		for i := len(sesh.ui) - 1; i >= 0; i-- {
+			win := sesh.ui[i]
+			if win.Click(x, y) {
+				return
+			}
+		}
 	}
-	sesh.win.Input(input)
+
+	for i := len(sesh.ui) - 1; i >= 0; i-- {
+		win := sesh.ui[i]
+		if win.Input(input) {
+			return
+		}
+	}
+	// sesh.win.Input(input)
+}
+
+func (sesh *Sesh) removeWindows() {
+	for i := len(sesh.ui) - 1; i >= 0; i-- {
+		if !sesh.ui[i].ShouldRemove() {
+			continue
+		}
+		if i < len(sesh.ui)-1 {
+			copy(sesh.ui[i:], sesh.ui[i+1:])
+		}
+		sesh.ui[len(sesh.ui)-1] = nil // or the zero vsesh.uilue of T
+		sesh.ui = sesh.ui[:len(sesh.ui)-1]
+	}
 }
 
 func (sesh *Sesh) refresh() {
-	sesh.win.Render(sesh.disp.nextFrame())
+	sesh.removeWindows()
+	scr := sesh.disp.nextFrame()
+	for i := 0; i < len(sesh.ui); i++ {
+		sesh.ui[i].Render(scr)
+	}
 	render := sesh.disp.diff()
 	if render == "" {
+		sesh.setCursor(sesh.ui[len(sesh.ui)-1].Cursor())
 		return
 	}
 	fmt.Println("Render: ", strings.Replace(render, "\033", "ESC", -1))
 	io.WriteString(sesh.ssh, render)
-	sesh.setCursor(sesh.win.Cursor())
+	sesh.setCursor(sesh.ui[len(sesh.ui)-1].Cursor())
 }
 
 func (sesh *Sesh) redraw() {
-	sesh.win.Render(sesh.disp.nextFrame())
+	sesh.removeWindows()
+	scr := sesh.disp.nextFrame()
+	for i := 0; i < len(sesh.ui); i++ {
+		sesh.ui[i].Render(scr)
+	}
 	io.WriteString(sesh.ssh, sesh.disp.full())
-	sesh.setCursor(sesh.win.Cursor())
+	sesh.setCursor(sesh.ui[len(sesh.ui)-1].Cursor())
 }
 
 func (sesh *Sesh) setCursor(x, y int) {
@@ -89,11 +124,17 @@ func (sesh *Sesh) setup() {
 	}
 	game := &GameWindow{World: sesh.world, Char: player, Sesh: sesh}
 	sesh.win = game
+	sesh.PushWindow(game)
 	// io.WriteString(sesh.ssh, "\033[?9h") // mouse on
 	sesh.world.apply <- ListenAction{listener: sesh}
 	sesh.world.apply <- AddAction{Obj: player}
 
-	io.WriteString(sesh.ssh, "\033[?1000h")
+	io.WriteString(sesh.ssh, EnableMouseReporting)
+	sesh.redraw()
+}
+
+func (sesh *Sesh) PushWindow(win Window) {
+	sesh.ui = append(sesh.ui, win)
 }
 
 func (sesh *Sesh) cleanup() {

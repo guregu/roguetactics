@@ -9,6 +9,7 @@ import (
 )
 
 const ctForTurn = 100
+const tickTime = time.Millisecond * 40
 
 type ID int64
 
@@ -116,7 +117,7 @@ func (w *World) Tick() {
 }
 
 func (w *World) Run() {
-	ticker := time.NewTicker(time.Millisecond * 40)
+	ticker := time.NewTicker(tickTime)
 	defer ticker.Stop()
 	for {
 		select {
@@ -153,6 +154,19 @@ func (w *World) NextTurn() {
 	if len(w.waitlist) == 0 {
 		return
 	}
+	allDead := true
+	for _, t := range w.waitlist {
+		if m, ok := t.(*Mob); ok {
+			if m.CanAct() || m.CanMove() {
+				allDead = false
+				break
+			}
+		}
+	}
+	if allDead {
+		w.up = nil
+		return
+	}
 
 	for _, turner := range w.waitlist {
 		turner.TurnTick(w)
@@ -162,6 +176,12 @@ func (w *World) NextTurn() {
 	if top.CT() >= ctForTurn {
 		w.up = top
 		top.TakeTurn(w)
+		if m, ok := top.(*Mob); ok {
+			if !m.CanAct() && !m.CanMove() {
+				m.FinishTurn(false, false)
+				w.NextTurn()
+			}
+		}
 	} else {
 		w.NextTurn()
 	}
@@ -184,6 +204,13 @@ func (w *World) sortWaitlist() {
 		}
 		return ct0 > ct1
 	})
+}
+
+func (w *World) Broadcast(msg string) {
+	fmt.Println("broadcast:", msg)
+	for sesh := range w.seshes {
+		sesh.Send(msg)
+	}
 }
 
 func (w *World) notify() {
@@ -263,6 +290,22 @@ func (ra RemoveAction) Apply(w *World) {
 	w.Delete(ID(ra))
 }
 
+type AttackAction struct {
+	Source *Mob
+	Target *Mob
+}
+
+func (aa AttackAction) Apply(w *World) {
+	weapon := aa.Source.Weapon()
+	dmg := weapon.RollDamage()
+	aa.Target.Damage(dmg)
+	msg := fmt.Sprintf("%s attacked %s with %s for %d damage!", aa.Source.Name(), aa.Target.Name(), weapon.Name, dmg)
+	w.Broadcast(msg)
+	if aa.Target.Dead() {
+		w.Broadcast(fmt.Sprintf("%s died.", aa.Target.Name()))
+	}
+}
+
 type EnqueueAction struct {
 	ID     ID
 	Action func(*Mob, *World)
@@ -283,6 +326,7 @@ func (eq EnqueueAction) Apply(w *World) {
 type InputAction struct {
 	UI    []Window
 	Input string
+	Sesh  *Sesh
 }
 
 func (ia InputAction) Apply(_ *World) {
@@ -292,11 +336,13 @@ func (ia InputAction) Apply(_ *World) {
 			return
 		}
 	}
+	ia.Sesh.removeWindows()
 }
 
 type ClickAction struct {
 	UI   []Window
 	X, Y int
+	Sesh *Sesh
 }
 
 func (ca ClickAction) Apply(_ *World) {
@@ -306,6 +352,7 @@ func (ca ClickAction) Apply(_ *World) {
 			return
 		}
 	}
+	ca.Sesh.removeWindows()
 }
 
 type NextTurnAction struct{}
@@ -329,4 +376,79 @@ func (ms *MoveState) Run(w *World) bool {
 	m.Move(ms.Mob, loc.X, loc.Y)
 	ms.i++
 	return ms.i == len(ms.Path)
+}
+
+type EnemyAIState struct {
+	self   *Mob
+	target *Mob
+	moved  bool
+	acted  bool
+}
+
+func (ai *EnemyAIState) Run(w *World) bool {
+	loc := ai.self.Loc()
+	m := w.Map(loc.Map)
+
+	if ai.target == nil {
+		var path []Loc
+		for _, obj := range m.Objects {
+			mob, ok := obj.(*Mob)
+			if !ok {
+				continue
+			}
+			if mob.Team() == ai.self.Team() {
+				continue
+			}
+			if mob.Dead() {
+				continue
+			}
+
+			if ai.self.CanAttack(mob) {
+				ai.target = mob
+				return false
+			}
+
+			// otherloc := mob.Loc()
+			// newpath := m.FindPath(loc.X, loc.Y, otherloc.X, otherloc.Y, ai.self, mob)
+			newpath := m.FindPathNextTo(ai.self, mob)
+			fmt.Println("AI NEWPATH", newpath)
+			if len(newpath) == 0 {
+				continue
+			}
+			if path == nil || len(newpath) < len(path) {
+				// path = newpath[:len(newpath)-1]
+				path = newpath
+				ai.target = mob
+			}
+		}
+		if path != nil {
+			if len(path) == 0 {
+				// already close
+				return false
+			}
+			if len(path) > ai.self.MoveRange() {
+				path = path[:ai.self.MoveRange()]
+			}
+			fmt.Println("AI moving to", path)
+			ai.moved = true
+			w.push <- &MoveState{Mob: ai.self, Path: path}
+			return false
+		}
+		ai.self.FinishTurn(ai.moved, ai.acted)
+		w.apply <- NextTurnAction{}
+		return true
+	}
+
+	if ai.self.CanAttack(ai.target) {
+		w.apply <- AttackAction{
+			Source: ai.self,
+			Target: ai.target,
+		}
+		ai.acted = true
+	}
+
+	fmt.Println("AI done")
+	ai.self.FinishTurn(ai.moved, ai.acted)
+	w.apply <- NextTurnAction{}
+	return true
 }

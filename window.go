@@ -178,6 +178,12 @@ func (gw *GameWindow) Input(in string) bool {
 		return true
 	}
 
+	if m, ok := gw.World.Up().(*Mob); ok {
+		if m.Team() != gw.Team {
+			return true
+		}
+	}
+
 	switch in {
 	case "m":
 		if gw.moved {
@@ -186,10 +192,12 @@ func (gw *GameWindow) Input(in string) bool {
 		up := gw.World.Up()
 		if m, ok := up.(*Mob); ok {
 			gw.Sesh.PushWindow(&MoveWindow{
-				World: gw.World,
-				Sesh:  gw.Sesh,
-				Char:  m,
-				Range: m.MoveRange(),
+				World:   gw.World,
+				Sesh:    gw.Sesh,
+				Char:    m,
+				Range:   m.MoveRange(),
+				cursorX: -1,
+				cursorY: -1,
 				callback: func(moved bool) {
 					if moved {
 						gw.moved = true
@@ -197,6 +205,22 @@ func (gw *GameWindow) Input(in string) bool {
 				}})
 		}
 		return true
+	case "a":
+		if gw.acted {
+			return true
+		}
+		up := gw.World.Up()
+		if m, ok := up.(*Mob); ok {
+			gw.Sesh.PushWindow(&AttackWindow{
+				World: gw.World,
+				Sesh:  gw.Sesh,
+				Char:  m,
+				callback: func(acted bool) {
+					if acted {
+						gw.acted = true
+					}
+				}})
+		}
 	case "n":
 		up := gw.World.Up()
 		if m, ok := up.(*Mob); ok {
@@ -295,13 +319,14 @@ nextline:
 			copyString(scr[y], gw.Msgs[n], true)
 		}
 	}
-	statusBar := fmt.Sprintf("Turn: %d", gw.World.turn)
+	statusBar := ""
 	up := gw.World.Up()
 	if up != nil {
 		if mob, ok := up.(*Mob); ok {
-			statusBar += fmt.Sprintf(" %s (HP: %d, MP: %d, Speed: %d, CT: %d)", mob.Name(), mob.HP, mob.MP, mob.Speed(), mob.CT())
+			statusBar += fmt.Sprintf("%s (HP: %d, MP: %d, Speed: %d, CT: %d)", mob.Name(), mob.HP(), mob.MP(), mob.Speed(), mob.CT())
 		}
 	}
+	statusBar += fmt.Sprintf(" [Turn: %d]", gw.World.turn)
 	// copyString(scr[len(scr)-1], "Guest (HP: 42/42, MP: 100/100)", true)
 	copyString(scr[len(scr)-2], statusBar, true)
 
@@ -419,9 +444,16 @@ type MoveWindow struct {
 	Self     bool
 	done     bool
 	callback func(moved bool)
+
+	pathcache map[*Tile][]Loc
+	cursorX   int
+	cursorY   int
 }
 
 func (mw *MoveWindow) Render(scr [][]Glyph) {
+	if mw.pathcache == nil {
+		mw.pathcache = make(map[*Tile][]Loc)
+	}
 	loc := mw.Char.Loc()
 	m := mw.World.Map(loc.Map)
 	for y := loc.Y - mw.Range; y <= loc.Y+mw.Range; y++ {
@@ -445,19 +477,33 @@ func (mw *MoveWindow) Render(scr [][]Glyph) {
 				continue
 			}
 			tile := m.TileAt(x, y)
-			top := tile.Top()
-			if !tile.Collides && top == nil {
-				path := m.FindPath(loc.X, loc.Y, x, y)
-				if len(path) <= mw.Range {
+			if !tile.Collides && !tile.HasCollider(mw.Char) {
+				var path []Loc
+				if p, ok := mw.pathcache[tile]; ok {
+					path = p
+				} else {
+					path = m.FindPath(loc.X, loc.Y, x, y, mw.Char)
+					mw.pathcache[tile] = path
+				}
+				if path != nil && len(path) <= mw.Range {
 					scr[y][x].BG = ColorBlue
 				}
 			}
 		}
 	}
-	copyString(scr[len(scr)-1], "Move: click to move, ESC to cancel", true)
+	if mw.cursorX != -1 && mw.cursorY != -1 {
+		glyph := mw.Char.Glyph()
+		scr[mw.cursorY][mw.cursorX].Rune = 'X'
+		scr[mw.cursorY][mw.cursorX].FG = glyph.FG
+		scr[mw.cursorY][mw.cursorX].BG = ColorBlack
+	}
+	copyString(scr[len(scr)-1], "Move: click, or arrow keys then . to move; ESC to cancel", true)
 }
 
 func (mw *MoveWindow) Cursor() (x, y int) {
+	if mw.cursorX != -1 && mw.cursorY != -1 {
+		return mw.cursorX, mw.cursorY
+	}
 	loc := mw.Char.Loc()
 	return loc.X, loc.Y
 }
@@ -471,19 +517,58 @@ func (mw *MoveWindow) Input(input string) bool {
 			}
 			mw.done = true
 			return true
+		case '.':
+			if mw.cursorX != -1 && mw.cursorY != -1 {
+				return mw.Click(mw.cursorX, mw.cursorY)
+			}
 		}
 	}
+
+	switch input {
+	case ArrowKeyLeft:
+		mw.moveCursor(-1, 0)
+	case ArrowKeyRight:
+		mw.moveCursor(1, 0)
+	case ArrowKeyUp:
+		mw.moveCursor(0, -1)
+	case ArrowKeyDown:
+		mw.moveCursor(0, 1)
+	}
+
 	return true
+}
+
+func (mw *MoveWindow) moveCursor(dx, dy int) {
+	loc := mw.Char.Loc()
+	m := mw.World.Map(loc.Map)
+	if mw.cursorX == -1 {
+		mw.cursorX = loc.X
+	}
+	if mw.cursorY == -1 {
+		mw.cursorY = loc.Y
+	}
+	mw.cursorX += dx
+	if mw.cursorX >= m.Width() {
+		mw.cursorX = m.Width() - 1
+	}
+	mw.cursorY += dy
+	if mw.cursorY >= m.Height() {
+		mw.cursorY = m.Height() - 1
+	}
 }
 
 func (mw *MoveWindow) Click(x, y int) bool {
 	fmt.Println("move click", x, y)
 	loc := mw.Char.Loc()
 	m := mw.World.Map(loc.Map)
-	path := m.FindPath(loc.X, loc.Y, x, y)
+	path := m.FindPath(loc.X, loc.Y, x, y, mw.Char)
 	fmt.Println("path:", path)
 	if len(path) > mw.Range {
 		fmt.Println("too far:", len(path), mw.Range)
+		mw.Sesh.Bell()
+		return true
+	}
+	if len(path) == 0 {
 		mw.Sesh.Bell()
 		return true
 	}
@@ -502,8 +587,115 @@ func (mw *MoveWindow) ShouldRemove() bool {
 	return mw.done
 }
 
+type AttackWindow struct {
+	World    *World
+	Sesh     *Sesh
+	Char     *Mob
+	Range    int
+	Self     bool
+	done     bool
+	callback func(moved bool)
+}
+
+func (mw *AttackWindow) Render(scr [][]Glyph) {
+	loc := mw.Char.Loc()
+	m := mw.World.Map(loc.Map)
+	attackRange := mw.Char.Weapon().Range
+	for y := loc.Y - attackRange; y <= loc.Y+attackRange; y++ {
+		if y < 0 {
+			continue
+		}
+		if y >= m.Height() {
+			break
+		}
+		for x := loc.X - attackRange; x <= loc.X+attackRange; x++ {
+			if x < 0 {
+				continue
+			}
+			if x >= m.Width() {
+				break
+			}
+			if !mw.Self && loc.X == x && loc.Y == y {
+				continue
+			}
+			if abs(loc.X-x)+abs(loc.Y-y) > attackRange {
+				continue
+			}
+			scr[y][x].BG = ColorOlive
+			// tile := m.TileAt(x, y)
+			// top := tile.Top()
+			// if !tile.Collides && top == nil {
+			// 	scr[y][x].BG = ColorOlive
+			// }
+		}
+	}
+	copyString(scr[len(scr)-1], "Attack: click or arrow keys to target, ESC to cancel", true)
+}
+
+func (mw *AttackWindow) Cursor() (x, y int) {
+	loc := mw.Char.Loc()
+	return loc.X, loc.Y
+}
+
+func (mw *AttackWindow) Input(input string) bool {
+	if len(input) == 1 {
+		switch input[0] {
+		case 27: // ESC
+			if mw.callback != nil {
+				mw.callback(false)
+			}
+			mw.done = true
+			return true
+		}
+	}
+	loc := mw.Char.Loc()
+	switch input {
+	case ArrowKeyLeft:
+		mw.Click(loc.X-1, loc.Y)
+	case ArrowKeyRight:
+		mw.Click(loc.X+1, loc.Y)
+	case ArrowKeyUp:
+		mw.Click(loc.X, loc.Y-1)
+	case ArrowKeyDown:
+		mw.Click(loc.X, loc.Y+1)
+	case ">":
+		mw.Click(loc.X, loc.Y)
+	}
+	return true
+}
+
+func (mw *AttackWindow) Click(x, y int) bool {
+	fmt.Println("attack click", x, y)
+	loc := mw.Char.Loc()
+	m := mw.World.Map(loc.Map)
+	targetTile := m.TileAt(x, y)
+	target := targetTile.Top()
+	if mob, ok := target.(*Mob); ok {
+		if !mob.Attackable() {
+			mw.Sesh.Bell()
+			return true
+		}
+		mw.World.apply <- AttackAction{
+			Source: mw.Char,
+			Target: mob,
+		}
+		mw.done = true
+		mw.callback(true)
+		return true
+	} else {
+		mw.Sesh.Bell()
+	}
+	return true
+}
+
+func (mw *AttackWindow) ShouldRemove() bool {
+	return mw.done
+}
+
 const (
+	ColorBlack = 0
 	ColorRed   = 1
+	ColorOlive = 3
 	ColorBlue  = 4
 	ColorWhite = 15
 	ColorGray  = 237
@@ -513,4 +705,5 @@ var (
 	_ Window = (*GameWindow)(nil)
 	_ Window = (*ChatWindow)(nil)
 	_ Window = (*MoveWindow)(nil)
+	_ Window = (*AttackWindow)(nil)
 )

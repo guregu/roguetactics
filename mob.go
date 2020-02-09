@@ -53,10 +53,12 @@ type Mob struct {
 	speed int
 	move  int // move range
 
-	HP    int
-	MaxHP int
-	MP    int
-	MaxMP int
+	weapon *Weapon
+
+	hp    int
+	maxHP int
+	mp    int
+	maxMP int
 
 	moved bool
 	acted bool
@@ -86,6 +88,11 @@ func (m *Mob) Team() int {
 }
 
 func (m *Mob) Glyph() Glyph {
+	if m.Dead() {
+		corpse := m.glyph
+		corpse.Rune = '%'
+		return corpse
+	}
 	return m.glyph
 }
 
@@ -93,9 +100,15 @@ func (m *Mob) CT() int {
 	return m.ct
 }
 
-func (m *Mob) TakeTurn(_ *World) {
+func (m *Mob) TakeTurn(w *World) {
 	m.moved = false
 	m.acted = false
+
+	if m.Team() != 0 {
+		w.push <- &EnemyAIState{
+			self: m,
+		}
+	}
 }
 
 func (m *Mob) TurnTick(*World) {
@@ -122,7 +135,7 @@ func (m *Mob) FinishTurn(moved, acted bool) {
 }
 
 func (m *Mob) Collides(_ *World, _ ID) bool {
-	return true
+	return !m.Dead()
 }
 
 func (m *Mob) OnCollide(_ *World, _ ID) bool {
@@ -135,6 +148,62 @@ func (m *Mob) Move(loc Loc) {
 
 func (m *Mob) MoveRange() int {
 	return m.move
+}
+
+func (m *Mob) CanAttack(other *Mob) bool {
+	myloc := m.Loc()
+	otherloc := other.Loc()
+	if abs(myloc.X-otherloc.X)+abs(myloc.Y-otherloc.Y) <= m.Weapon().Range {
+		return true
+	}
+	return false
+}
+
+func (m *Mob) Weapon() Weapon {
+	if m.weapon != nil {
+		return *m.weapon
+	}
+	return weaponFist
+}
+
+func (m *Mob) HP() int {
+	return m.hp
+}
+
+func (m *Mob) MaxHP() int {
+	return m.maxHP
+}
+
+func (m *Mob) MP() int {
+	return m.mp
+}
+
+func (m *Mob) MaxMP() int {
+	return m.maxMP
+}
+
+func (m *Mob) Dead() bool {
+	return m.hp <= 0
+}
+
+func (m *Mob) CanAct() bool {
+	return !m.Dead()
+}
+
+func (m *Mob) CanMove() bool {
+	return !m.Dead()
+}
+
+func (m *Mob) Attackable() bool {
+	return !m.Dead()
+}
+
+func (m *Mob) Damage(dmg int) int {
+	m.hp -= dmg
+	if m.hp <= 0 {
+		m.loc.Z = 1
+	}
+	return dmg
 }
 
 func (m *Mob) Tick(w *World, tick int64) {

@@ -135,7 +135,9 @@ func (sesh *Sesh) setup() {
 	glyph2.FG = ColorBlue
 
 	koboldGlyph := GlyphOf('k')
+	kobold2Glyph := GlyphOf('K')
 	koboldGlyph.FG = ColorRed
+	kobold2Glyph.FG = ColorRed
 
 	team := Team{
 		ID: 0,
@@ -166,24 +168,24 @@ func (sesh *Sesh) setup() {
 		ID: 1,
 		Units: []*Mob{
 			&Mob{
-				name:   "Kobold A",
+				name:   "little Kobold",
 				glyph:  koboldGlyph,
 				loc:    Loc{Map: "test", X: 20, Y: 10, Z: 10},
 				speed:  5,
 				move:   5,
-				hp:     15,
-				maxHP:  15,
+				hp:     10,
+				maxHP:  10,
 				weapon: &weaponShank,
 				team:   1,
 			},
 			&Mob{
-				name:   "Kobold B",
-				glyph:  koboldGlyph,
+				name:   "big Kobold",
+				glyph:  kobold2Glyph,
 				loc:    Loc{Map: "test", X: 21, Y: 10, Z: 10},
 				speed:  4,
 				move:   4,
-				hp:     15,
-				maxMP:  15,
+				hp:     20,
+				maxMP:  20,
 				weapon: &weaponShank,
 				team:   1,
 			},

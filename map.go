@@ -155,10 +155,10 @@ func (m *Map) FindPathNextTo(from *Mob, to *Mob) []Loc {
 		path = e
 	}
 	if s != nil && (path == nil || len(s) < len(path)) {
-		path = e
+		path = s
 	}
 	if w != nil && (path == nil || len(w) < len(path)) {
-		path = e
+		path = w
 	}
 
 	return path

@@ -383,6 +383,9 @@ type EnemyAIState struct {
 	target *Mob
 	moved  bool
 	acted  bool
+
+	// path  []Loc
+	// pause int
 }
 
 func (ai *EnemyAIState) Run(w *World) bool {
@@ -416,7 +419,6 @@ func (ai *EnemyAIState) Run(w *World) bool {
 				continue
 			}
 			if path == nil || len(newpath) < len(path) {
-				// path = newpath[:len(newpath)-1]
 				path = newpath
 				ai.target = mob
 			}

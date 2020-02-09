@@ -174,63 +174,17 @@ func (gw *GameWindow) Input(in string) bool {
 		return true
 	}
 
-	if gw.World.Busy() {
+	if !gw.myTurn() {
 		return true
-	}
-
-	if m, ok := gw.World.Up().(*Mob); ok {
-		if m.Team() != gw.Team {
-			return true
-		}
 	}
 
 	switch in {
 	case "m":
-		if gw.moved {
-			return true
-		}
-		up := gw.World.Up()
-		if m, ok := up.(*Mob); ok {
-			gw.Sesh.PushWindow(&MoveWindow{
-				World:   gw.World,
-				Sesh:    gw.Sesh,
-				Char:    m,
-				Range:   m.MoveRange(),
-				cursorX: -1,
-				cursorY: -1,
-				callback: func(moved bool) {
-					if moved {
-						gw.moved = true
-					}
-				}})
-		}
-		return true
+		return gw.showMove()
 	case "a":
-		if gw.acted {
-			return true
-		}
-		up := gw.World.Up()
-		if m, ok := up.(*Mob); ok {
-			gw.Sesh.PushWindow(&AttackWindow{
-				World: gw.World,
-				Sesh:  gw.Sesh,
-				Char:  m,
-				callback: func(acted bool) {
-					if acted {
-						gw.acted = true
-					}
-				}})
-		}
+		return gw.showAttack()
 	case "n":
-		up := gw.World.Up()
-		if m, ok := up.(*Mob); ok {
-			fmt.Println("finish turn", gw.moved, gw.acted)
-			m.FinishTurn(gw.moved, gw.acted)
-		}
-		gw.World.NextTurn()
-		gw.moved = false
-		gw.acted = false
-		return true
+		return gw.nextTurn()
 	}
 
 	// var x, y int
@@ -270,25 +224,84 @@ func (gw *GameWindow) Input(in string) bool {
 	return true
 }
 
-func enqueueMove(world *World, mob *Mob, x, y int) {
-	world.apply <- EnqueueAction{ID: mob.ID(), Action: func(mob *Mob, world *World) {
-		loc := mob.Loc()
-		m := world.Map(loc.Map)
-		loc.X = x
-		loc.Y = y
-		target := m.TileAtLoc(loc)
-		if target.Collides {
-			// gw.Sesh.Send("Ouch! You bumped into a wall.")
-			return
+func (gw *GameWindow) myTurn() bool {
+	if gw.World.Busy() {
+		return false
+	}
+
+	if m, ok := gw.World.Up().(*Mob); ok {
+		if m.Team() != gw.Team {
+			return false
 		}
-		if top := target.Top(); top != nil {
-			if col, ok := top.(Collider); ok && col.Collides(world, mob.ID()) {
-				// gw.Sesh.Send("You're blocked by " + col.Name() + ".")
-				return
-			}
+	}
+
+	return true
+}
+
+func (gw *GameWindow) showMove() bool {
+	if gw.moved {
+		return true
+	}
+	up := gw.World.Up()
+	if m, ok := up.(*Mob); ok {
+		gw.Sesh.PushWindow(&MoveWindow{
+			World:   gw.World,
+			Sesh:    gw.Sesh,
+			Char:    m,
+			Range:   m.MoveRange(),
+			cursorX: -1,
+			cursorY: -1,
+			callback: func(moved bool) {
+				if moved {
+					gw.moved = true
+					if !gw.canDoSomething() {
+						gw.nextTurn()
+					}
+				}
+			}})
+	}
+	return true
+}
+
+func (gw *GameWindow) showAttack() bool {
+	if gw.acted {
+		return true
+	}
+	up := gw.World.Up()
+	if m, ok := up.(*Mob); ok {
+		gw.Sesh.PushWindow(&AttackWindow{
+			World: gw.World,
+			Sesh:  gw.Sesh,
+			Char:  m,
+			callback: func(acted bool) {
+				if acted {
+					gw.acted = true
+					if !gw.canDoSomething() {
+						gw.nextTurn()
+					}
+				}
+			}})
+	}
+	return true
+}
+
+func (gw *GameWindow) nextTurn() bool {
+	up := gw.World.Up()
+	if m, ok := up.(*Mob); ok {
+		if m.Team() != gw.Team {
+			return true
 		}
-		m.Move(mob, loc.X, loc.Y)
-	}}
+		fmt.Println("finish turn", gw.moved, gw.acted)
+		m.FinishTurn(gw.moved, gw.acted)
+	}
+	gw.World.NextTurn()
+	gw.moved = false
+	gw.acted = false
+	return true
+}
+
+func (gw *GameWindow) canDoSomething() bool {
+	return !gw.moved || !gw.acted
 }
 
 func (gw *GameWindow) Render(scr [][]Glyph) {
@@ -323,12 +336,18 @@ nextline:
 	up := gw.World.Up()
 	if up != nil {
 		if mob, ok := up.(*Mob); ok {
-			statusBar += fmt.Sprintf("%s (HP: %d, MP: %d, Speed: %d, CT: %d)", mob.Name(), mob.HP(), mob.MP(), mob.Speed(), mob.CT())
+			statusBar += fmt.Sprintf("[ ] %s (HP: %d, MP: %d, Speed: %d, CT: %d)", mob.Name(), mob.HP(), mob.MP(), mob.Speed(), mob.CT())
 		}
 	}
-	statusBar += fmt.Sprintf(" [Turn: %d]", gw.World.turn)
+
 	// copyString(scr[len(scr)-1], "Guest (HP: 42/42, MP: 100/100)", true)
 	copyString(scr[len(scr)-2], statusBar, true)
+	if mob, ok := gw.World.Up().(*Mob); ok {
+		scr[len(scr)-2][1] = mob.Glyph()
+	}
+
+	turnInfo := fmt.Sprintf("[Turn: %d]", gw.World.turn)
+	copyStringAlignRight(scr[len(scr)-2], turnInfo)
 
 	if gw.World.Busy() {
 		helpBar := "Busy..."
@@ -358,6 +377,24 @@ func (gw *GameWindow) ShouldRemove() bool {
 }
 
 func (gw *GameWindow) Click(x, y int) bool {
+	if !gw.myTurn() {
+		return true
+	}
+
+	up := gw.World.Up()
+	uploc := up.Loc()
+	if uploc.X == x && uploc.Y == y {
+		return gw.showMove()
+	}
+
+	m := gw.Char.Loc().Map
+	tile := gw.World.Map(m).TileAt(x, y)
+	if mob, ok := tile.Top().(*Mob); ok {
+		if mob.Team() != gw.Team {
+			return gw.showAttack()
+		}
+	}
+
 	gw.Msgs = append(gw.Msgs, fmt.Sprintf("Clicked: (%d,%d)", x, y))
 	return true
 }
@@ -377,7 +414,17 @@ func copyString(dst []Glyph, src string, padRight bool) {
 	for ; x < len(dst); x++ {
 		dst[x] = GlyphOf(' ')
 	}
+}
 
+func copyStringAlignRight(dst []Glyph, src string) {
+	x := len(dst) - len(src)
+	for _, r := range src {
+		if x >= len(dst) {
+			break
+		}
+		dst[x] = GlyphOf(r)
+		x++
+	}
 }
 
 func (gw *GameWindow) Cursor() (x, y int) {
@@ -442,6 +489,7 @@ type MoveWindow struct {
 	Char     Object
 	Range    int
 	Self     bool
+	Readonly bool
 	done     bool
 	callback func(moved bool)
 
@@ -509,6 +557,9 @@ func (mw *MoveWindow) Cursor() (x, y int) {
 }
 
 func (mw *MoveWindow) Input(input string) bool {
+	if mw.Readonly {
+		return false
+	}
 	if len(input) == 1 {
 		switch input[0] {
 		case 27: // ESC
@@ -558,6 +609,9 @@ func (mw *MoveWindow) moveCursor(dx, dy int) {
 }
 
 func (mw *MoveWindow) Click(x, y int) bool {
+	if mw.Readonly {
+		return false
+	}
 	fmt.Println("move click", x, y)
 	loc := mw.Char.Loc()
 	m := mw.World.Map(loc.Map)
@@ -587,12 +641,17 @@ func (mw *MoveWindow) ShouldRemove() bool {
 	return mw.done
 }
 
+func (mw *MoveWindow) close() {
+	mw.done = true
+}
+
 type AttackWindow struct {
 	World    *World
 	Sesh     *Sesh
 	Char     *Mob
 	Range    int
 	Self     bool
+	Readonly bool
 	done     bool
 	callback func(moved bool)
 }
@@ -638,6 +697,9 @@ func (mw *AttackWindow) Cursor() (x, y int) {
 }
 
 func (mw *AttackWindow) Input(input string) bool {
+	if mw.Readonly {
+		return false
+	}
 	if len(input) == 1 {
 		switch input[0] {
 		case 27: // ESC
@@ -665,6 +727,9 @@ func (mw *AttackWindow) Input(input string) bool {
 }
 
 func (mw *AttackWindow) Click(x, y int) bool {
+	if mw.Readonly {
+		return true
+	}
 	fmt.Println("attack click", x, y)
 	loc := mw.Char.Loc()
 	m := mw.World.Map(loc.Map)
@@ -690,6 +755,10 @@ func (mw *AttackWindow) Click(x, y int) bool {
 
 func (mw *AttackWindow) ShouldRemove() bool {
 	return mw.done
+}
+
+func (mw *AttackWindow) close() {
+	mw.done = true
 }
 
 const (

@@ -31,6 +31,8 @@ type Sesh struct {
 	win   *GameWindow
 	ssh   ssh.Session
 	disp  *Display
+
+	cursorX, cursorY int
 }
 
 func NewSesh(s ssh.Session, w *World) *Sesh {
@@ -49,21 +51,23 @@ func (sesh *Sesh) do(input string) {
 	if strings.HasPrefix(input, MousePrefix) && len(input) >= 6 && input[3] == 35 {
 		x := int(input[4] - 32 - 1)
 		y := int(input[5] - 32 - 1)
-		for i := len(sesh.ui) - 1; i >= 0; i-- {
-			win := sesh.ui[i]
-			if win.Click(x, y) {
-				return
-			}
-		}
+		// for i := len(sesh.ui) - 1; i >= 0; i-- {
+		// 	win := sesh.ui[i]
+		// 	if win.Click(x, y) {
+		// 		return
+		// 	}
+		// }
+		sesh.world.apply <- ClickAction{UI: sesh.ui, X: x, Y: y}
+		return
 	}
 
-	for i := len(sesh.ui) - 1; i >= 0; i-- {
-		win := sesh.ui[i]
-		if win.Input(input) {
-			return
-		}
-	}
-	// sesh.win.Input(input)
+	sesh.world.apply <- InputAction{UI: sesh.ui, Input: input}
+	// for i := len(sesh.ui) - 1; i >= 0; i-- {
+	// 	win := sesh.ui[i]
+	// 	if win.Input(input) {
+	// 		return
+	// 	}
+	// }
 }
 
 func (sesh *Sesh) removeWindows() {
@@ -74,7 +78,7 @@ func (sesh *Sesh) removeWindows() {
 		if i < len(sesh.ui)-1 {
 			copy(sesh.ui[i:], sesh.ui[i+1:])
 		}
-		sesh.ui[len(sesh.ui)-1] = nil // or the zero vsesh.uilue of T
+		sesh.ui[len(sesh.ui)-1] = nil
 		sesh.ui = sesh.ui[:len(sesh.ui)-1]
 	}
 }
@@ -87,7 +91,11 @@ func (sesh *Sesh) refresh() {
 	}
 	render := sesh.disp.diff()
 	if render == "" {
-		sesh.setCursor(sesh.ui[len(sesh.ui)-1].Cursor())
+		x, y := sesh.ui[len(sesh.ui)-1].Cursor()
+		if sesh.cursorX != x || sesh.cursorY != y {
+			sesh.setCursor(x, y)
+			sesh.cursorX, sesh.cursorY = x, y
+		}
 		return
 	}
 	fmt.Println("Render: ", strings.Replace(render, "\033", "ESC", -1))
@@ -113,24 +121,47 @@ func (sesh *Sesh) Send(msg string) {
 	sesh.win.Msgs = append(sesh.win.Msgs, msg)
 }
 
+func (sesh *Sesh) Bell() {
+	io.WriteString(sesh.ssh, string(7))
+}
+
 func (sesh *Sesh) setup() {
 	glyph := GlyphOf('@')
 	glyph.FG = ColorRed
 
-	player := &Mob{
-		name:  sesh.ssh.User(),
-		glyph: glyph,
-		loc:   Loc{Map: "test", X: 10, Y: 10, Z: 10},
+	glyph2 := GlyphOf('d')
+	glyph2.FG = ColorRed
+
+	team := Team{
+		ID: 0,
+		Units: []*Mob{
+			&Mob{
+				name:  "Guy",
+				glyph: glyph,
+				loc:   Loc{Map: "test", X: 10, Y: 10, Z: 10},
+				speed: 5,
+				move:  5,
+			},
+			&Mob{
+				name:  "Dog",
+				glyph: glyph2,
+				loc:   Loc{Map: "test", X: 11, Y: 10, Z: 10},
+				speed: 3,
+				move:  10,
+			},
+		},
 	}
+	player := team.Units[0]
 	game := &GameWindow{World: sesh.world, Char: player, Sesh: sesh}
 	sesh.win = game
 	sesh.PushWindow(game)
-	// io.WriteString(sesh.ssh, "\033[?9h") // mouse on
 	sesh.world.apply <- ListenAction{listener: sesh}
-	sesh.world.apply <- AddAction{Obj: player}
+	for _, mob := range team.Units {
+		sesh.world.apply <- AddAction{Obj: mob}
+	}
+	sesh.world.apply <- NextTurnAction{}
 
 	io.WriteString(sesh.ssh, EnableMouseReporting)
-	sesh.redraw()
 }
 
 func (sesh *Sesh) PushWindow(win Window) {

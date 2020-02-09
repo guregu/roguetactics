@@ -152,6 +152,11 @@ type GameWindow struct {
 	World *World
 	Char  Object
 	Msgs  []string
+	Team  int
+
+	turnID int
+	moved  bool
+	acted  bool
 }
 
 func (gw *GameWindow) Input(in string) bool {
@@ -167,45 +172,77 @@ func (gw *GameWindow) Input(in string) bool {
 	case "R":
 		gw.Sesh.redraw()
 		return true
-	case "m":
-		gw.Sesh.PushWindow(&MoveWindow{World: gw.World, Char: gw.Char, Range: 3})
+	}
+
+	if gw.World.Busy() {
 		return true
 	}
 
-	var x, y int
 	switch in {
-	case ArrowKeyUp:
-		y--
-	case ArrowKeyDown:
-		y++
-	case ArrowKeyLeft:
-		x--
-	case ArrowKeyRight:
-		x++
+	case "m":
+		if gw.moved {
+			return true
+		}
+		up := gw.World.Up()
+		if m, ok := up.(*Mob); ok {
+			gw.Sesh.PushWindow(&MoveWindow{
+				World: gw.World,
+				Sesh:  gw.Sesh,
+				Char:  m,
+				Range: m.MoveRange(),
+				callback: func(moved bool) {
+					if moved {
+						gw.moved = true
+					}
+				}})
+		}
+		return true
+	case "n":
+		up := gw.World.Up()
+		if m, ok := up.(*Mob); ok {
+			fmt.Println("finish turn", gw.moved, gw.acted)
+			m.FinishTurn(gw.moved, gw.acted)
+		}
+		gw.World.NextTurn()
+		gw.moved = false
+		gw.acted = false
+		return true
 	}
-	if x != 0 || y != 0 {
-		gw.World.apply <- EnqueueAction{ID: gw.Char.ID(), Action: func(mob *Mob, world *World) {
-			loc := mob.Loc()
-			m := world.Map(loc.Map)
-			loc.X += x
-			loc.Y += y
-			target := m.TileAtLoc(loc)
-			if target.Collides {
-				gw.Sesh.Send("Ouch! You bumped into a wall.")
-				return
-			}
-			if top := target.Top(); top != nil {
-				if col, ok := top.(Collider); ok && col.Collides(world, mob.ID()) {
-					gw.Sesh.Send("You're blocked by " + col.Name() + ".")
-					return
-				}
-			}
-			m.Move(mob, loc.X, loc.Y)
-			// go func() {
-			// 	gw.World.apply <- PlaceAction{ID: gw.Char.ID(), Loc: loc, Src: gw.Sesh, Collide: true}
-			// }()
-		}}
-	}
+
+	// var x, y int
+	// switch in {
+	// case ArrowKeyUp:
+	// 	y--
+	// case ArrowKeyDown:
+	// 	y++
+	// case ArrowKeyLeft:
+	// 	x--
+	// case ArrowKeyRight:
+	// 	x++
+	// }
+	// if x != 0 || y != 0 {
+	// 	gw.World.apply <- EnqueueAction{ID: gw.Char.ID(), Action: func(mob *Mob, world *World) {
+	// 		loc := mob.Loc()
+	// 		m := world.Map(loc.Map)
+	// 		loc.X += x
+	// 		loc.Y += y
+	// 		target := m.TileAtLoc(loc)
+	// 		if target.Collides {
+	// 			gw.Sesh.Send("Ouch! You bumped into a wall.")
+	// 			return
+	// 		}
+	// 		if top := target.Top(); top != nil {
+	// 			if col, ok := top.(Collider); ok && col.Collides(world, mob.ID()) {
+	// 				gw.Sesh.Send("You're blocked by " + col.Name() + ".")
+	// 				return
+	// 			}
+	// 		}
+	// 		m.Move(mob, loc.X, loc.Y)
+	// 		// go func() {
+	// 		// 	gw.World.apply <- PlaceAction{ID: gw.Char.ID(), Loc: loc, Src: gw.Sesh, Collide: true}
+	// 		// }()
+	// 	}}
+	// }
 	return true
 }
 
@@ -249,8 +286,8 @@ nextline:
 			scr[y][x] = tile.Glyph()
 		}
 	}
-	for i := 0; i < 3; i++ {
-		n := len(gw.Msgs) - 3 + i
+	for i := 0; i < 2; i++ {
+		n := len(gw.Msgs) - 2 + i
 		y := len(scr) - 4 + i
 		if n < 0 || n > len(gw.Msgs) {
 			copyString(scr[y], "", true)
@@ -258,7 +295,37 @@ nextline:
 			copyString(scr[y], gw.Msgs[n], true)
 		}
 	}
-	copyString(scr[len(scr)-1], "Guest (HP: 42/42, MP: 100/100)", true)
+	statusBar := fmt.Sprintf("Turn: %d", gw.World.turn)
+	up := gw.World.Up()
+	if up != nil {
+		if mob, ok := up.(*Mob); ok {
+			statusBar += fmt.Sprintf(" %s (HP: %d, MP: %d, Speed: %d, CT: %d)", mob.Name(), mob.HP, mob.MP, mob.Speed(), mob.CT())
+		}
+	}
+	// copyString(scr[len(scr)-1], "Guest (HP: 42/42, MP: 100/100)", true)
+	copyString(scr[len(scr)-2], statusBar, true)
+
+	if gw.World.Busy() {
+		helpBar := "Busy..."
+		copyString(scr[len(scr)-1], helpBar, true)
+		return
+	}
+
+	helpBar := ""
+	if !gw.moved {
+		helpBar += "m) Move"
+	}
+	if len(helpBar) > 0 {
+		helpBar += " "
+	}
+	if !gw.acted {
+		helpBar += "a) Attack"
+	}
+	if len(helpBar) > 0 {
+		helpBar += " "
+	}
+	helpBar += "n) Next turn"
+	copyString(scr[len(scr)-1], helpBar, true)
 }
 
 func (gw *GameWindow) ShouldRemove() bool {
@@ -289,10 +356,12 @@ func copyString(dst []Glyph, src string, padRight bool) {
 }
 
 func (gw *GameWindow) Cursor() (x, y int) {
-	if gw.Char == nil {
+	up := gw.World.Up()
+	m, ok := up.(*Mob)
+	if !ok {
 		return 0, 0
 	}
-	loc := gw.Char.Loc()
+	loc := m.Loc()
 	return loc.X, loc.Y
 }
 
@@ -301,16 +370,6 @@ type ChatWindow struct {
 	input  string
 	done   bool
 }
-
-/*
-type Window interface {
-	Render(scr [][]Glyph)
-	Cursor() (x, y int)
-	Input(string) bool
-	Click(x, y int) bool
-	ShouldRemove() bool
-}
-*/
 
 func (cw *ChatWindow) Render(scr [][]Glyph) {
 	bottom := scr[len(scr)-1]
@@ -353,11 +412,13 @@ func (cw *ChatWindow) ShouldRemove() bool {
 }
 
 type MoveWindow struct {
-	World *World
-	Char  Object
-	Range int
-	Self  bool
-	done  bool
+	World    *World
+	Sesh     *Sesh
+	Char     Object
+	Range    int
+	Self     bool
+	done     bool
+	callback func(moved bool)
 }
 
 func (mw *MoveWindow) Render(scr [][]Glyph) {
@@ -386,11 +447,14 @@ func (mw *MoveWindow) Render(scr [][]Glyph) {
 			tile := m.TileAt(x, y)
 			top := tile.Top()
 			if !tile.Collides && top == nil {
-				scr[y][x].BG = ColorBlue
+				path := m.FindPath(loc.X, loc.Y, x, y)
+				if len(path) <= mw.Range {
+					scr[y][x].BG = ColorBlue
+				}
 			}
 		}
 	}
-	copyString(scr[len(scr)-1], "Move", true)
+	copyString(scr[len(scr)-1], "Move: click to move, ESC to cancel", true)
 }
 
 func (mw *MoveWindow) Cursor() (x, y int) {
@@ -402,6 +466,9 @@ func (mw *MoveWindow) Input(input string) bool {
 	if len(input) == 1 {
 		switch input[0] {
 		case 27: // ESC
+			if mw.callback != nil {
+				mw.callback(false)
+			}
 			mw.done = true
 			return true
 		}
@@ -415,8 +482,17 @@ func (mw *MoveWindow) Click(x, y int) bool {
 	m := mw.World.Map(loc.Map)
 	path := m.FindPath(loc.X, loc.Y, x, y)
 	fmt.Println("path:", path)
-	for _, loc := range path {
-		enqueueMove(mw.World, mw.Char.(*Mob), loc.X, loc.Y)
+	if len(path) > mw.Range {
+		fmt.Println("too far:", len(path), mw.Range)
+		mw.Sesh.Bell()
+		return true
+	}
+	// for _, loc := range path {
+	// enqueueMove(mw.World, mw.Char.(*Mob), loc.X, loc.Y)
+	// }
+	mw.World.push <- &MoveState{Mob: mw.Char.(*Mob), Path: path}
+	if mw.callback != nil {
+		mw.callback(true)
 	}
 	mw.done = true
 	return true

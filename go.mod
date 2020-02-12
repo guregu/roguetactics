@@ -2,6 +2,7 @@ module github.com/guregu/roguemud
 
 require (
 	github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239 // indirect
+	github.com/dennwc/dom v0.3.0
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/gliderlabs/ssh v0.1.3
 	github.com/justinian/dice v1.0.0

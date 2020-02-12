@@ -104,7 +104,7 @@ func (d *Display) full() string {
 	buf := resetScreen + cursorTo00 + resetSGR
 	for y := 0; y < len(d.next); y++ {
 		if y > 0 {
-			buf += "\n"
+			buf += "\n\r"
 		}
 		for x := 0; x < len(d.next[y]); x++ {
 			buf += d.next[y][x].String()

@@ -31,13 +31,13 @@ type Sesh struct {
 	world *World
 	ui    []Window
 	win   *GameWindow
-	ssh   ssh.Session
+	ssh   Conn
 	disp  *Display
 
 	cursorX, cursorY int
 }
 
-func NewSesh(s ssh.Session, w *World) *Sesh {
+func NewSesh(s Conn, w *World) *Sesh {
 	return &Sesh{
 		world: w,
 		ssh:   s,
@@ -218,36 +218,7 @@ func (sesh *Sesh) cleanup() {
 }
 
 func (sesh *Sesh) Run() {
-	ptyReq, winCh, isPty := sesh.ssh.Pty()
-	_ = ptyReq
-
-	if !isPty {
-		io.WriteString(sesh.ssh, "No PTY requested.\n")
-		sesh.ssh.Exit(1)
-		return
-	}
-
-	defer sesh.cleanup()
-
-	go func() {
-		for win := range winCh {
-			sesh.resize(win)
-		}
-	}()
-	sesh.setup()
-	buf := make([]byte, 256)
-	for {
-		n, err := sesh.ssh.Read(buf[:])
-		if err != nil {
-			fmt.Println("Error: 1", err)
-			sesh.ssh.Exit(1)
-			break
-		}
-		if n > 0 {
-			sesh.do(string(buf[:n]))
-			fmt.Println("GOT:", buf[:n], ">>>", strings.ReplaceAll(string(buf[:n]), "\033", "ESC"))
-		}
-	}
+	runSesh(sesh)
 }
 
 func main() {
@@ -256,11 +227,7 @@ func main() {
 	world := newWorld()
 	go world.Run()
 
-	ssh.Handle(func(s ssh.Session) {
-		sesh := NewSesh(s, world)
-		io.WriteString(sesh.ssh, resetScreen+cursorTo00)
-		sesh.Run()
-	})
+	handleSSH(world)
 
 	log.Println("starting ssh server on port 2222...")
 	log.Fatal(ssh.ListenAndServe(":2222", nil))

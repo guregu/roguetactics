@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"os"
+	// "os"
 	"path/filepath"
 
 	"github.com/nickdavies/go-astar/astar"
@@ -299,7 +299,7 @@ func (t *Tile) String() string {
 
 func loadMap(name string) (*Map, error) {
 	filename := filepath.Join("maps", name)
-	f, err := os.Open(filename)
+	f, err := open(filename)
 	if err != nil {
 		return nil, err
 	}

@@ -392,6 +392,11 @@ func (ai *EnemyAIState) Run(w *World) bool {
 	loc := ai.self.Loc()
 	m := w.Map(loc.Map)
 
+	if ai.self.Dead() {
+		w.apply <- NextTurnAction{}
+		return true
+	}
+
 	if ai.target == nil {
 		var path []Loc
 		for _, obj := range m.Objects {

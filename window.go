@@ -294,7 +294,7 @@ func (gw *GameWindow) nextTurn() bool {
 		fmt.Println("finish turn", gw.moved, gw.acted)
 		m.FinishTurn(gw.moved, gw.acted)
 	}
-	gw.World.NextTurn()
+	gw.World.pushBottom <- NextTurnState{}
 	gw.moved = false
 	gw.acted = false
 	return true

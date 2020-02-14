@@ -26,8 +26,9 @@ type World struct {
 	state  []StateAction
 	busy   *int32
 
-	apply chan Action
-	push  chan StateAction
+	apply      chan Action
+	push       chan StateAction
+	pushBottom chan StateAction
 }
 
 type Action interface {
@@ -46,8 +47,9 @@ func newWorld() *World {
 
 		busy: new(int32),
 
-		apply: make(chan Action, 32),
-		push:  make(chan StateAction, 32),
+		apply:      make(chan Action, 32),
+		push:       make(chan StateAction, 32),
+		pushBottom: make(chan StateAction, 32),
 	}
 	testMap, err := loadMap("test.map")
 	if err != nil {
@@ -126,6 +128,8 @@ func (w *World) Run() {
 			w.notify()
 		case a := <-w.push:
 			w.state = append(w.state, a)
+		case a := <-w.pushBottom:
+			w.state = append([]StateAction{a}, w.state...)
 		case <-ticker.C:
 			if len(w.state) > 0 {
 				state := w.state[len(w.state)-1]
@@ -359,6 +363,13 @@ type NextTurnAction struct{}
 
 func (na NextTurnAction) Apply(w *World) {
 	w.NextTurn()
+}
+
+type NextTurnState struct{}
+
+func (NextTurnState) Run(w *World) bool {
+	w.NextTurn()
+	return true
 }
 
 type MoveState struct {

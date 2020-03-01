@@ -220,6 +220,62 @@ func (m *Map) FindPathNextTo(from *Mob, to *Mob) []Loc {
 	// return locs
 }
 
+func (m *Map) Raycast(from, to Loc) (hit *Mob, blocked bool, path []Loc) {
+	x0 := from.X
+	y0 := from.Y
+	x1 := to.X
+	y1 := to.Y
+
+	dx := x1 - x0
+	if dx < 0 {
+		dx = -dx
+	}
+	dy := y1 - y0
+	if dy < 0 {
+		dy = -dy
+	}
+	var sx, sy int
+	if x0 < x1 {
+		sx = 1
+	} else {
+		sx = -1
+	}
+	if y0 < y1 {
+		sy = 1
+	} else {
+		sy = -1
+	}
+	err := dx - dy
+
+	for {
+		if !(x0 == from.X && y0 == from.Y) {
+			path = append(path, Loc{Map: m.Name, X: x0, Y: y0})
+			tile := m.TileAt(x0, y0)
+			for _, obj := range tile.Objects {
+				if mob, ok := obj.(*Mob); ok {
+					return mob, false, path
+				}
+			}
+			if tile.Collides {
+				return nil, true, path
+			}
+		}
+		if x0 == x1 && y0 == y1 {
+			break
+		}
+		e2 := 2 * err
+		if e2 > -dy {
+			err -= dy
+			x0 += sx
+		}
+		if e2 < dx {
+			err += dx
+			y0 += sy
+		}
+	}
+	return nil, false, path
+}
+
 type Tile struct {
 	Ground   Glyph
 	Objects  map[ID]Object

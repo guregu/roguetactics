@@ -150,7 +150,7 @@ func (mw *MoveWindow) Click(x, y int) bool {
 	// for _, loc := range path {
 	// enqueueMove(mw.World, mw.Char.(*Mob), loc.X, loc.Y)
 	// }
-	mw.World.push <- &MoveState{Mob: mw.Char.(*Mob), Path: path}
+	mw.World.push <- &MoveState{Obj: mw.Char, Path: path}
 	if mw.callback != nil {
 		mw.callback(true)
 	}

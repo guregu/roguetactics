@@ -466,20 +466,35 @@ func (NextTurnState) Run(w *World) bool {
 }
 
 type MoveState struct {
-	Mob  *Mob
-	Path []Loc
+	Obj    Object
+	Path   []Loc
+	Delete bool
+	Speed  int
+
 	i    int
+	wait int
 }
 
 func (ms *MoveState) Run(w *World) bool {
 	if len(ms.Path) == 0 {
 		return true
 	}
+	if ms.wait < ms.Speed {
+		ms.wait++
+		return false
+	}
+	ms.wait = 0
 	loc := ms.Path[ms.i]
 	m := w.Map(loc.Map)
-	m.Move(ms.Mob, loc.X, loc.Y)
+	m.Move(ms.Obj, loc.X, loc.Y)
 	ms.i++
-	return ms.i == len(ms.Path)
+	if ms.i != len(ms.Path) {
+		return false
+	}
+	if ms.Delete {
+		w.Delete(ms.Obj.ID())
+	}
+	return true
 }
 
 type EnemyAIState struct {
@@ -542,7 +557,7 @@ func (ai *EnemyAIState) Run(w *World) bool {
 			}
 			fmt.Println("AI moving to", path)
 			ai.moved = true
-			w.push <- &MoveState{Mob: ai.self, Path: path}
+			w.push <- &MoveState{Obj: ai.self, Path: path}
 			return false
 		}
 		ai.self.FinishTurn(ai.moved, ai.acted)

@@ -26,8 +26,8 @@ func generatePlayerTeam() Team {
 	glyph := GlyphOf('@')
 	glyph.FG = ColorBlue
 
-	glyph2 := GlyphOf('d')
-	glyph2.FG = ColorBlue
+	// glyph2 := GlyphOf('d')
+	// glyph2.FG = ColorBlue
 
 	team := Team{
 		ID: PlayerTeam,
@@ -42,31 +42,31 @@ func generatePlayerTeam() Team {
 				weapon: &weaponSword,
 			},
 			&Mob{
-				name:   "Dog",
-				glyph:  glyph2,
+				name:   "Archer",
+				glyph:  glyph,
 				speed:  5,
 				move:   10,
 				hp:     15,
 				maxMP:  15,
-				weapon: &weaponBite,
+				weapon: &weaponBow,
 			},
 			&Mob{
 				name:   "Wizard",
 				glyph:  glyph,
-				speed:  5,
+				speed:  3,
 				move:   10,
 				hp:     15,
 				maxMP:  15,
-				weapon: &weaponBite,
+				weapon: &weaponStaff,
 			},
 			&Mob{
 				name:   "Priest",
 				glyph:  glyph,
-				speed:  5,
+				speed:  4,
 				move:   10,
 				hp:     15,
 				maxMP:  15,
-				weapon: &weaponBite,
+				weapon: &weaponStaff,
 			},
 		},
 	}
@@ -96,7 +96,7 @@ func generateEnemyTeam() Team {
 				name:   "big Kobold",
 				glyph:  kobold2Glyph,
 				speed:  4,
-				move:   10,
+				move:   4,
 				hp:     20,
 				maxMP:  20,
 				weapon: &weaponShank,
@@ -106,7 +106,7 @@ func generateEnemyTeam() Team {
 				name:   "big Kobold",
 				glyph:  kobold2Glyph,
 				speed:  4,
-				move:   10,
+				move:   4,
 				hp:     20,
 				maxMP:  20,
 				weapon: &weaponShank,
@@ -116,7 +116,7 @@ func generateEnemyTeam() Team {
 				name:   "big Kobold",
 				glyph:  kobold2Glyph,
 				speed:  4,
-				move:   10,
+				move:   4,
 				hp:     20,
 				maxMP:  20,
 				weapon: &weaponShank,

@@ -133,9 +133,11 @@ func (gw *GameWindow) showAttack() bool {
 	up := gw.World.Up()
 	if m, ok := up.(*Mob); ok {
 		gw.Sesh.PushWindow(&AttackWindow{
-			World: gw.World,
-			Sesh:  gw.Sesh,
-			Char:  m,
+			World:   gw.World,
+			Sesh:    gw.Sesh,
+			Char:    m,
+			cursorX: -1,
+			cursorY: -1,
 			callback: func(acted bool) {
 				if acted {
 					gw.acted = true
@@ -199,8 +201,7 @@ nextline:
 		}
 	}
 
-	// copyString(scr[len(scr)-1], "Guest (HP: 42/42, MP: 100/100)", true)
-	copyString(scr[len(scr)-2], statusBar, true)
+	copyString(scr[len(scr)-3], statusBar, true)
 	if mob, ok := gw.World.Up().(*Mob); ok {
 		scr[len(scr)-2][1] = mob.Glyph()
 	}

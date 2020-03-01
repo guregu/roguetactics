@@ -55,7 +55,7 @@ func newWorld() *World {
 
 		player: generatePlayerTeam(),
 
-		apply:      make(chan Action, 32),
+		apply:      make(chan Action, 1024),
 		push:       make(chan StateAction, 32),
 		pushBottom: make(chan StateAction, 32),
 	}
@@ -446,6 +446,22 @@ func (ca ClickAction) Apply(_ *World) {
 	for i := len(ca.UI) - 1; i >= 0; i-- {
 		win := ca.UI[i]
 		if win.Click(ca.X, ca.Y) {
+			return
+		}
+	}
+	ca.Sesh.removeWindows()
+}
+
+type MouseoverAction struct {
+	UI   []Window
+	X, Y int
+	Sesh *Sesh
+}
+
+func (ca MouseoverAction) Apply(_ *World) {
+	for i := len(ca.UI) - 1; i >= 0; i-- {
+		win := ca.UI[i]
+		if win.Mouseover(ca.X, ca.Y) {
 			return
 		}
 	}

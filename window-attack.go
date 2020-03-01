@@ -48,7 +48,7 @@ func (mw *AttackWindow) Render(scr [][]Glyph) {
 					continue
 				}
 			}
-			scr[y][x].BG = ColorOlive
+			scr[y][x].BG = 130
 			// tile := m.TileAt(x, y)
 			// top := tile.Top()
 			// if !tile.Collides && top == nil {
@@ -64,10 +64,17 @@ func (mw *AttackWindow) Render(scr [][]Glyph) {
 	copyString(scr[len(scr)-1], help, true)
 
 	if mw.cursorX != -1 && mw.cursorY != -1 {
-		glyph := mw.Char.Glyph()
-		scr[mw.cursorY][mw.cursorX].Rune = 'X'
-		scr[mw.cursorY][mw.cursorX].FG = glyph.FG
-		scr[mw.cursorY][mw.cursorX].BG = ColorBlack
+		// glyph := mw.Char.Glyph()
+		// scr[mw.cursorY][mw.cursorX].Rune = 'X'
+		// scr[mw.cursorY][mw.cursorX].FG = glyph.FG
+		// scr[mw.cursorY][mw.cursorX].BG = ColorBlack
+
+		if target, ok := m.TileAt(mw.cursorX, mw.cursorY).Top().(*Mob); ok {
+			status := append(GlyphsOf(" ↪︎"), target.StatusLine()...)
+			copyGlyphs(scr[len(scr)-2], status, true)
+		} else {
+			copyString(scr[len(scr)-2], " ↪︎", true)
+		}
 	}
 }
 
@@ -143,6 +150,13 @@ func (mw *AttackWindow) Click(x, y int) bool {
 		mw.Sesh.Bell()
 		return true
 	}
+	wep := mw.Char.Weapon()
+	if len(path) > wep.Range ||
+		(wep.Targeting == TargetingCross && ((loc.X != x) && (loc.Y != y))) {
+		// out of range
+		mw.Sesh.Bell()
+		return true
+	}
 	if blocked {
 		mw.Sesh.Send(fmt.Sprintf("%s's attack was obstructed.", mw.Char.Name()))
 	} else {
@@ -151,7 +165,7 @@ func (mw *AttackWindow) Click(x, y int) bool {
 			Target: target,
 		}
 	}
-	if wep := mw.Char.Weapon(); wep.projectile != nil && len(path) > 0 {
+	if wep.projectile != nil && len(path) > 0 {
 		proj := wep.projectile()
 		proj.Move(path[0])
 		mw.World.Add(proj)
@@ -175,6 +189,17 @@ func (mw *AttackWindow) close() {
 	mw.done = true
 }
 
+func (mw *AttackWindow) Mouseover(x, y int) bool {
+	loc := mw.Char.Loc()
+	m := mw.World.Map(loc.Map)
+	if x >= m.Width() || y >= m.Height() {
+		return true
+	}
+	mw.cursorX = x
+	mw.cursorY = y
+	return true
+}
+
 func (mw *AttackWindow) moveCursor(dx, dy int) {
 	loc := mw.Char.Loc()
 	m := mw.World.Map(loc.Map)
@@ -193,3 +218,7 @@ func (mw *AttackWindow) moveCursor(dx, dy int) {
 		mw.cursorY = m.Height() - 1
 	}
 }
+
+var (
+	_ Window = (*AttackWindow)(nil)
+)

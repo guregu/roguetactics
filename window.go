@@ -152,6 +152,7 @@ type Window interface {
 	Cursor() (x, y int)
 	Input(string) bool
 	Click(x, y int) bool
+	Mouseover(x, y int) bool
 	ShouldRemove() bool
 }
 
@@ -209,6 +210,10 @@ func (cw *ChatWindow) Click(x, y int) bool {
 
 func (cw *ChatWindow) ShouldRemove() bool {
 	return cw.done
+}
+
+func (*ChatWindow) Mouseover(x, y int) bool {
+	return false
 }
 
 func drawCenteredBox(scr [][]Glyph, lines []string, bgColor int) {
@@ -311,8 +316,5 @@ const (
 )
 
 var (
-	_ Window = (*GameWindow)(nil)
 	_ Window = (*ChatWindow)(nil)
-	_ Window = (*MoveWindow)(nil)
-	_ Window = (*AttackWindow)(nil)
 )

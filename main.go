@@ -21,7 +21,7 @@ const (
 	MousePrefix   = "\033[M"
 
 	// https://www.xfree86.org/current/ctlseqs.html#Mouse%20Tracking
-	EnableMouseReporting = "\033[?1000h"
+	EnableMouseReporting = "\033[?1003h"
 )
 
 var mainMap *Map
@@ -50,16 +50,21 @@ func (sesh *Sesh) resize(win ssh.Window) {
 }
 
 func (sesh *Sesh) do(input string) {
-	if strings.HasPrefix(input, MousePrefix) && len(input) >= 6 && input[3] == 35 {
+	if strings.HasPrefix(input, MousePrefix) && len(input) >= 6 {
 		x := int(input[4] - 32 - 1)
 		y := int(input[5] - 32 - 1)
+		switch input[3] {
+		case 35:
+			sesh.world.apply <- ClickAction{UI: sesh.ui, X: x, Y: y, Sesh: sesh}
+		case 67:
+			sesh.world.apply <- MouseoverAction{UI: sesh.ui, X: x, Y: y, Sesh: sesh}
+		}
 		// for i := len(sesh.ui) - 1; i >= 0; i-- {
 		// 	win := sesh.ui[i]
 		// 	if win.Click(x, y) {
 		// 		return
 		// 	}
 		// }
-		sesh.world.apply <- ClickAction{UI: sesh.ui, X: x, Y: y, Sesh: sesh}
 		return
 	}
 
@@ -136,9 +141,9 @@ func (sesh *Sesh) Bell() {
 }
 
 func (sesh *Sesh) setup() {
-	sesh.world.apply <- ListenAction{listener: sesh}
 	sesh.PushWindow(&TitleWindow{World: sesh.world, Sesh: sesh})
 	io.WriteString(sesh.ssh, EnableMouseReporting)
+	sesh.world.apply <- ListenAction{listener: sesh}
 }
 
 func (sesh *Sesh) PushWindow(win Window) {

@@ -1,7 +1,8 @@
 package main
 
 import (
-// "log"
+	// "log"
+	"fmt"
 )
 
 type Loc struct {
@@ -216,6 +217,13 @@ func (m *Mob) Tick(w *World, tick int64) {
 
 func (m *Mob) Enqueue(action func(*Mob, *World)) {
 	m.actions = append(m.actions, action)
+}
+
+func (mob *Mob) StatusLine() []Glyph {
+	status := fmt.Sprintf("[ ] %s (HP: %d, MP: %d, Speed: %d, CT: %d)", mob.Name(), mob.HP(), mob.MP(), mob.Speed(), mob.CT())
+	glyphs := GlyphsOf(status)
+	glyphs[1] = mob.Glyph()
+	return glyphs
 }
 
 var _ Ticker = &Mob{}

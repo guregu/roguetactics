@@ -193,21 +193,17 @@ nextline:
 			copyString(scr[y], gw.Msgs[n], true)
 		}
 	}
-	statusBar := ""
 	up := gw.World.Up()
 	if up != nil {
 		if mob, ok := up.(*Mob); ok {
-			statusBar += fmt.Sprintf("[ ] %s (HP: %d, MP: %d, Speed: %d, CT: %d)", mob.Name(), mob.HP(), mob.MP(), mob.Speed(), mob.CT())
+			copyGlyphs(scr[len(scr)-3], mob.StatusLine(), true)
 		}
 	}
 
-	copyString(scr[len(scr)-3], statusBar, true)
-	if mob, ok := gw.World.Up().(*Mob); ok {
-		scr[len(scr)-2][1] = mob.Glyph()
-	}
+	copyString(scr[len(scr)-2], "", true)
 
 	turnInfo := fmt.Sprintf("[Turn: %d]", gw.World.turn)
-	copyStringAlignRight(scr[len(scr)-2], turnInfo)
+	copyStringAlignRight(scr[len(scr)-3], turnInfo)
 
 	if gw.World.Busy() {
 		helpBar := "Busy..."
@@ -258,6 +254,10 @@ func (gw *GameWindow) Click(x, y int) bool {
 	return true
 }
 
+func (gw *GameWindow) Mouseover(x, y int) bool {
+	return false
+}
+
 type GameOverWindow struct {
 	World *World
 	Sesh  *Sesh
@@ -276,11 +276,8 @@ func (gw *GameOverWindow) Cursor() (x, y int) {
 func (gw *GameOverWindow) Input(input string) bool {
 	switch input[0] {
 	case 13: //ENTER
-		fmt.Println("GOW INPUT", input)
 		gw.Sesh.PushWindow(&TitleWindow{World: gw.World, Sesh: gw.Sesh})
-		fmt.Println("GOW2")
 		gw.World.reset()
-		fmt.Println("GOW3")
 		gw.done = true
 	}
 	return true
@@ -293,3 +290,12 @@ func (gw *GameOverWindow) Click(x, y int) bool {
 func (gw *GameOverWindow) ShouldRemove() bool {
 	return gw.done
 }
+
+func (gw *GameOverWindow) Mouseover(x, y int) bool {
+	return false
+}
+
+var (
+	_ Window = (*GameWindow)(nil)
+	_ Window = (*GameOverWindow)(nil)
+)

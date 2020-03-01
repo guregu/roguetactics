@@ -42,3 +42,11 @@ func (mw *TitleWindow) Click(x, y int) bool {
 func (mw *TitleWindow) ShouldRemove() bool {
 	return mw.done
 }
+
+func (gw *TitleWindow) Mouseover(x, y int) bool {
+	return false
+}
+
+var (
+	_ Window = (*TitleWindow)(nil)
+)

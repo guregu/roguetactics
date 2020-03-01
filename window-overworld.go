@@ -35,3 +35,11 @@ func (mw *OverworldWindow) Click(x, y int) bool {
 func (mw *OverworldWindow) ShouldRemove() bool {
 	return mw.done
 }
+
+func (gw *OverworldWindow) Mouseover(x, y int) bool {
+	return false
+}
+
+var (
+	_ Window = (*TitleWindow)(nil)
+)

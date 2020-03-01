@@ -55,7 +55,7 @@ func (mw *MoveWindow) Render(scr [][]Glyph) {
 					mw.pathcache[tile] = path
 				}
 				if path != nil && len(path) <= mw.Range {
-					scr[y][x].BG = ColorBlue
+					scr[y][x].BG = 17
 				}
 			}
 		}
@@ -162,6 +162,14 @@ func (mw *MoveWindow) ShouldRemove() bool {
 	return mw.done
 }
 
+func (mw *MoveWindow) Mouseover(x, y int) bool {
+	return false
+}
+
 func (mw *MoveWindow) close() {
 	mw.done = true
 }
+
+var (
+	_ Window = (*MoveWindow)(nil)
+)

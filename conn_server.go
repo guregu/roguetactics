@@ -45,7 +45,6 @@ func runSesh(sesh *Sesh) {
 	sesh.setup()
 	buf := make([]byte, 256)
 	for {
-		log.Println("reading")
 		n, err := sesh.ssh.Read(buf[:])
 		if err != nil {
 			fmt.Println("Error: 1", err)

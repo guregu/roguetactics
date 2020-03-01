@@ -104,7 +104,8 @@ func (m *Mob) TakeTurn(w *World) {
 	m.moved = false
 	m.acted = false
 
-	if m.Team() != 0 {
+	// TODO: friendly AI
+	if m.Team() != 0 && !w.gameOver {
 		w.push <- &EnemyAIState{
 			self: m,
 		}
@@ -215,16 +216,6 @@ func (m *Mob) Tick(w *World, tick int64) {
 
 func (m *Mob) Enqueue(action func(*Mob, *World)) {
 	m.actions = append(m.actions, action)
-}
-
-const (
-	PlayerTeam = 0
-	AITeam     = 1
-)
-
-type Team struct {
-	ID    int
-	Units []*Mob
 }
 
 var _ Ticker = &Mob{}

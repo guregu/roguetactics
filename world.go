@@ -19,12 +19,18 @@ type World struct {
 	seshes   map[*Sesh]struct{}
 	waitlist []Turner
 
+	// battle state
 	lastID ID
 	tick   int64
 	turn   int64
 	up     Turner
 	state  []StateAction
 	busy   *int32
+
+	// overall game state
+	player   Team
+	current  *Map
+	gameOver bool
 
 	apply      chan Action
 	push       chan StateAction
@@ -47,16 +53,42 @@ func newWorld() *World {
 
 		busy: new(int32),
 
+		player: generatePlayerTeam(),
+
 		apply:      make(chan Action, 32),
 		push:       make(chan StateAction, 32),
 		pushBottom: make(chan StateAction, 32),
 	}
-	testMap, err := loadMap("test.map")
+	testMap, err := loadMap("dojo")
 	if err != nil {
 		panic(err)
 	}
-	w.maps["test"] = testMap
+	w.maps["dojo"] = testMap
 	return w
+}
+
+func (w *World) reset() {
+	log.Println("Resetting world...")
+	w.state = nil
+	w.up = nil
+	w.gameOver = false
+	w.objects = make(map[ID]Object)
+	w.player = generatePlayerTeam()
+	w.current = nil
+	w.waitlist = nil
+	w.tick = 0
+	w.turn = 0
+	for _, m := range w.maps {
+		m.Reset()
+	}
+	atomic.StoreInt32(w.busy, 0)
+
+	for sesh := range w.seshes {
+		if sesh.win != nil {
+			sesh.win.close()
+			// sesh.win = nil
+		}
+	}
 }
 
 func (w *World) Map(name string) *Map {
@@ -131,6 +163,10 @@ func (w *World) Run() {
 		case a := <-w.pushBottom:
 			w.state = append([]StateAction{a}, w.state...)
 		case <-ticker.C:
+			// if w.gameOver {
+			// 	w.notify()
+			// 	return
+			// }
 			if len(w.state) > 0 {
 				state := w.state[len(w.state)-1]
 				if state.Run(w) {
@@ -143,6 +179,9 @@ func (w *World) Run() {
 				atomic.StoreInt32(w.busy, busy)
 			}
 			w.Tick()
+			if !w.gameOver && w.shouldEndGame() {
+				w.endGame()
+			}
 			w.notify()
 		}
 	}
@@ -223,6 +262,28 @@ func (w *World) notify() {
 	}
 }
 
+func (w *World) shouldEndGame() bool {
+	if w.current == nil {
+		return false
+	}
+	for _, obj := range w.current.Objects {
+		if mob, ok := obj.(*Mob); ok && mob.Team() == PlayerTeam {
+			if !mob.Dead() {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func (w *World) endGame() {
+	w.push <- GameOverState{}
+	for sesh := range w.seshes {
+		sesh.PushWindow(&GameOverWindow{World: w, Sesh: sesh})
+	}
+	w.gameOver = true
+}
+
 type ListenAction struct {
 	listener *Sesh
 }
@@ -242,17 +303,49 @@ func (pa PartAction) Apply(w *World) {
 	delete(w.seshes, pa.listener)
 }
 
+type StartBattleAction struct {
+	Battle Battle
+}
+
+func (sba StartBattleAction) Apply(w *World) {
+	m := w.Map(sba.Battle.Map)
+	w.current = m
+	w.turn = 0
+	w.waitlist = nil
+	// TODO: map spawns
+	n := 0
+	for teamID, team := range sba.Battle.Teams {
+		for i, unit := range team.Units {
+			unit.loc = m.SpawnPoints[teamID][i]
+			w.Add(unit)
+			n++
+		}
+	}
+
+	for sesh := range w.seshes {
+		gw := &GameWindow{World: w, Map: m, Team: PlayerTeam, Sesh: sesh}
+		sesh.PushWindow(gw)
+		sesh.win = gw
+	}
+
+	w.apply <- NextTurnAction{}
+}
+
 type AddAction struct {
 	Obj Object
 }
 
+func (w *World) Add(obj Object) {
+	w.Create(obj)
+	loc := obj.Loc()
+	if loc.Map != "" {
+		w.Map(loc.Map).TileAtLoc(loc).Add(obj)
+	}
+}
+
 func (aa AddAction) Apply(w *World) {
 	log.Println("create action", aa.Obj)
-	w.Create(aa.Obj)
-	loc := aa.Obj.Loc()
-	if loc.Map != "" {
-		w.Map(loc.Map).TileAtLoc(loc).Add(aa.Obj)
-	}
+	w.Add(aa.Obj)
 }
 
 type PlaceAction struct {
@@ -469,4 +562,10 @@ func (ai *EnemyAIState) Run(w *World) bool {
 	ai.self.FinishTurn(ai.moved, ai.acted)
 	w.apply <- NextTurnAction{}
 	return true
+}
+
+type GameOverState struct{}
+
+func (gos GameOverState) Run(w *World) bool {
+	return false
 }

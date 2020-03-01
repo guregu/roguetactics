@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"io"
 	// "os"
+	"encoding/json"
+	"log"
 	"path/filepath"
+	"strings"
 
 	"github.com/nickdavies/go-astar/astar"
 )
@@ -14,6 +17,41 @@ type Map struct {
 	Name    string
 	Tiles   [][]*Tile
 	Objects map[ID]Object
+
+	SpawnPoints [][]Loc
+
+	Meta MapMeta
+}
+
+type MapMeta struct {
+	Name   string
+	Width  int
+	Height int
+	Glyphs map[string]struct {
+		FG      int
+		BG      int
+		Collide bool
+	}
+	BG [][]int
+
+	Teams       int
+	SpawnPoints [][][2]int
+}
+
+func (m *Map) NewTile(glyph Glyph, collides bool, x, y int) *Tile {
+	return &Tile{
+		Ground:   glyph,
+		Objects:  make(map[ID]Object),
+		Collides: collides,
+		X:        x,
+		Y:        y,
+		Map:      m,
+	}
+}
+func (m *Map) Reset() {
+	for _, obj := range m.Objects {
+		m.Remove(obj)
+	}
 }
 
 func (m *Map) TileAtLoc(loc Loc) *Tile {
@@ -230,7 +268,11 @@ loop:
 
 func (t *Tile) Glyph() Glyph {
 	if top := t.Top(); top != nil {
-		return top.Glyph()
+		g := top.Glyph()
+		if g.BG == 0 && t.Ground.BG != 0 {
+			g.BG = t.Ground.BG
+		}
+		return g
 	}
 	return t.Ground
 }
@@ -298,16 +340,35 @@ func (t *Tile) String() string {
 }
 
 func loadMap(name string) (*Map, error) {
-	filename := filepath.Join("maps", name)
+	filename := filepath.Join("maps", name+".map")
 	f, err := open(filename)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
+
+	var meta MapMeta
+	metaf, err := open(strings.Replace(filename, ".map", ".json", 1))
+	if err == nil {
+		defer metaf.Close()
+		if err := json.NewDecoder(metaf).Decode(&meta); err != nil {
+			return nil, err
+		}
+	}
+	log.Printf("Loading map: %s %+v", name, meta)
+
+	if meta.Height == 0 {
+		meta.Height = 20
+	}
+	if meta.Width == 0 {
+		meta.Width = 80
+	}
+
 	r := bufio.NewReader(f)
 	m := &Map{
-		Name:    "test",
+		Name:    name,
 		Objects: make(map[ID]Object),
+		Meta:    meta,
 	}
 	var x, y int
 	for {
@@ -317,21 +378,29 @@ func loadMap(name string) (*Map, error) {
 			for _, r := range string(line) {
 				glyph := GlyphOf(r)
 				collides := false
-				if r == '.' || r == '#' {
-					glyph.FG = ColorGray
-				} else {
-					glyph.FG = ColorWhite
-					collides = true
-					// glyph.Bold = true
+				for glyphs, info := range meta.Glyphs {
+					if !strings.ContainsRune(glyphs, r) {
+						continue
+					}
+					if info.Collide {
+						collides = info.Collide
+					}
+					if info.FG != 0 {
+						glyph.FG = info.FG
+					}
+					if info.BG != 0 {
+						glyph.BG = info.BG
+					}
 				}
-				tline = append(tline, &Tile{
-					Ground:   glyph,
-					Objects:  make(map[ID]Object),
-					Collides: collides,
-					X:        x,
-					Y:        y,
-					Map:      m,
-				})
+				if meta.BG != nil {
+					glyph.BG = meta.BG[y][x]
+				}
+				tile := m.NewTile(glyph, collides, x, y)
+				tline = append(tline, tile)
+				x++
+			}
+			for len(tline) < meta.Width {
+				tline = append(tline, m.NewTile(GlyphOf(' '), true, x, y))
 				x++
 			}
 			m.Tiles = append(m.Tiles, tline)
@@ -342,6 +411,12 @@ func loadMap(name string) (*Map, error) {
 			break
 		} else if err != nil {
 			return nil, err
+		}
+	}
+	m.SpawnPoints = make([][]Loc, meta.Teams)
+	for i, spawns := range meta.SpawnPoints {
+		for _, spawn := range spawns {
+			m.SpawnPoints[i] = append(m.SpawnPoints[i], Loc{Map: m.Name, X: spawn[0], Y: spawn[1]})
 		}
 	}
 	return m, nil

@@ -87,6 +87,10 @@ func (sesh *Sesh) removeWindows() {
 
 func (sesh *Sesh) refresh() {
 	sesh.removeWindows()
+	if len(sesh.ui) == 0 {
+		return
+	}
+
 	scr := sesh.disp.nextFrame()
 	for i := 0; i < len(sesh.ui); i++ {
 		sesh.ui[i].Render(scr)
@@ -107,6 +111,10 @@ func (sesh *Sesh) refresh() {
 
 func (sesh *Sesh) redraw() {
 	sesh.removeWindows()
+	if len(sesh.ui) == 0 {
+		return
+	}
+
 	scr := sesh.disp.nextFrame()
 	for i := 0; i < len(sesh.ui); i++ {
 		sesh.ui[i].Render(scr)
@@ -128,82 +136,8 @@ func (sesh *Sesh) Bell() {
 }
 
 func (sesh *Sesh) setup() {
-	glyph := GlyphOf('@')
-	glyph.FG = ColorBlue
-
-	glyph2 := GlyphOf('d')
-	glyph2.FG = ColorBlue
-
-	koboldGlyph := GlyphOf('k')
-	kobold2Glyph := GlyphOf('K')
-	koboldGlyph.FG = ColorRed
-	kobold2Glyph.FG = ColorRed
-
-	team := Team{
-		ID: 0,
-		Units: []*Mob{
-			&Mob{
-				name:   "Guy",
-				glyph:  glyph,
-				loc:    Loc{Map: "test", X: 10, Y: 10, Z: 10},
-				speed:  3,
-				move:   5,
-				hp:     20,
-				maxHP:  20,
-				weapon: &weaponSword,
-			},
-			&Mob{
-				name:   "Dog",
-				glyph:  glyph2,
-				loc:    Loc{Map: "test", X: 11, Y: 10, Z: 10},
-				speed:  5,
-				move:   10,
-				hp:     15,
-				maxMP:  15,
-				weapon: &weaponBite,
-			},
-		},
-	}
-	enemies := Team{
-		ID: 1,
-		Units: []*Mob{
-			&Mob{
-				name:   "little Kobold",
-				glyph:  koboldGlyph,
-				loc:    Loc{Map: "test", X: 20, Y: 10, Z: 10},
-				speed:  5,
-				move:   5,
-				hp:     10,
-				maxHP:  10,
-				weapon: &weaponShank,
-				team:   1,
-			},
-			&Mob{
-				name:   "big Kobold",
-				glyph:  kobold2Glyph,
-				loc:    Loc{Map: "test", X: 21, Y: 10, Z: 10},
-				speed:  4,
-				move:   4,
-				hp:     20,
-				maxMP:  20,
-				weapon: &weaponShank,
-				team:   1,
-			},
-		},
-	}
-	player := team.Units[0]
-	game := &GameWindow{World: sesh.world, Char: player, Sesh: sesh}
-	sesh.win = game
-	sesh.PushWindow(game)
 	sesh.world.apply <- ListenAction{listener: sesh}
-	for _, mob := range team.Units {
-		sesh.world.apply <- AddAction{Obj: mob}
-	}
-	for _, mob := range enemies.Units {
-		sesh.world.apply <- AddAction{Obj: mob}
-	}
-	sesh.world.apply <- NextTurnAction{}
-
+	sesh.PushWindow(&TitleWindow{World: sesh.world, Sesh: sesh})
 	io.WriteString(sesh.ssh, EnableMouseReporting)
 }
 
@@ -213,7 +147,6 @@ func (sesh *Sesh) PushWindow(win Window) {
 
 func (sesh *Sesh) cleanup() {
 	sesh.world.apply <- PartAction{listener: sesh}
-	sesh.world.apply <- RemoveAction(sesh.win.Char.ID())
 	fmt.Println("disconnex")
 }
 

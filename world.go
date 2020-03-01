@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"sort"
 	"sync/atomic"
@@ -33,6 +34,7 @@ type World struct {
 	gameOver bool
 
 	apply      chan Action
+	applySync  chan Action
 	push       chan StateAction
 	pushBottom chan StateAction
 }
@@ -56,6 +58,7 @@ func newWorld() *World {
 		player: generatePlayerTeam(),
 
 		apply:      make(chan Action, 1024),
+		applySync:  make(chan Action, 1024),
 		push:       make(chan StateAction, 32),
 		pushBottom: make(chan StateAction, 32),
 	}
@@ -156,6 +159,9 @@ func (w *World) Run() {
 	for {
 		select {
 		case a := <-w.apply:
+			a.Apply(w)
+			w.notify()
+		case a := <-w.applySync:
 			a.Apply(w)
 			w.notify()
 		case a := <-w.push:
@@ -466,6 +472,14 @@ func (ca MouseoverAction) Apply(_ *World) {
 		}
 	}
 	ca.Sesh.removeWindows()
+}
+
+type ShutdownAction struct{}
+
+func (ShutdownAction) Apply(w *World) {
+	for sesh := range w.seshes {
+		io.WriteString(sesh.ssh, resetScreen+resetSGR+"\033[?1003l")
+	}
 }
 
 type NextTurnAction struct{}

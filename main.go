@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"strings"
 	"time"
@@ -166,7 +165,5 @@ func main() {
 	go world.Run()
 
 	handleSSH(world)
-
-	log.Println("starting ssh server on port 2222...")
-	log.Fatal(ssh.ListenAndServe(":2222", nil))
+	listenAndWait()
 }

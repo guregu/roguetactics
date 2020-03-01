@@ -186,7 +186,7 @@ nextline:
 	}
 	for i := 0; i < 2; i++ {
 		n := len(gw.Msgs) - 2 + i
-		y := len(scr) - 4 + i
+		y := len(scr) - 5 + i
 		if n < 0 || n > len(gw.Msgs) {
 			copyString(scr[y], "", true)
 		} else {

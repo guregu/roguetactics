@@ -21,6 +21,10 @@ func handleSSH(world *World) {
 	// io.WriteString(sesh.ssh, resetScreen+cursorTo00)
 }
 
+func listenAndWait() {
+	select {}
+}
+
 func runSesh(sesh *Sesh) {
 	term := sesh.ssh.(*xtermConn).term
 	cb := js.FuncOf(func(_ js.Value, args []js.Value) interface{} {

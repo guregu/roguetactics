@@ -8,8 +8,10 @@ import (
 	"log"
 	"os"
 	"strings"
+	"syscall"
 
 	"github.com/gliderlabs/ssh"
+	"github.com/ztrue/shutdown"
 )
 
 func handleSSH(world *World) {
@@ -18,6 +20,17 @@ func handleSSH(world *World) {
 		io.WriteString(sesh.ssh, resetScreen+cursorTo00)
 		sesh.Run()
 	})
+	shutdown.Add(func() {
+		world.applySync <- ShutdownAction{}
+	})
+}
+
+func listenAndWait() {
+	log.Println("starting ssh server on port 2222...")
+	go func() {
+		log.Fatal(ssh.ListenAndServe(":2222", nil))
+	}()
+	shutdown.Listen(syscall.SIGINT, syscall.SIGTERM)
 }
 
 func open(name string) (io.ReadCloser, error) {

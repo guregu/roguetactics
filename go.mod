@@ -1,4 +1,4 @@
-module github.com/guregu/roguemud
+module github.com/guregu/roguetactics
 
 require (
 	github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239 // indirect

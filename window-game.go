@@ -11,9 +11,10 @@ type GameWindow struct {
 	Team  int
 	Map   *Map
 
-	turnID int
-	moved  bool
-	acted  bool
+	turnID   int
+	moved    bool
+	acted    bool
+	startLoc Loc
 
 	done bool
 }
@@ -48,42 +49,30 @@ func (gw *GameWindow) Input(in string) bool {
 		return gw.showAttack()
 	case "n":
 		return gw.nextTurn()
+	case "c":
+		return gw.showCast()
+	case ";":
+		gw.Sesh.PushWindow(&FarlookWindow{
+			World:   gw.World,
+			Sesh:    gw.Sesh,
+			Char:    gw.World.Up(),
+			cursorX: -1,
+			cursorY: -1,
+		})
+	case "u":
+		if !gw.moved {
+			return true
+		}
+		if gw.acted {
+			return true
+		}
+		if mob, ok := gw.World.Up().(*Mob); ok {
+			m := gw.World.Map(mob.Loc().Map)
+			m.Move(mob, gw.startLoc.X, gw.startLoc.Y)
+			gw.moved = false
+		}
 	}
 
-	// var x, y int
-	// switch in {
-	// case ArrowKeyUp:
-	// 	y--
-	// case ArrowKeyDown:
-	// 	y++
-	// case ArrowKeyLeft:
-	// 	x--
-	// case ArrowKeyRight:
-	// 	x++
-	// }
-	// if x != 0 || y != 0 {
-	// 	gw.World.apply <- EnqueueAction{ID: gw.Char.ID(), Action: func(mob *Mob, world *World) {
-	// 		loc := mob.Loc()
-	// 		m := world.Map(loc.Map)
-	// 		loc.X += x
-	// 		loc.Y += y
-	// 		target := m.TileAtLoc(loc)
-	// 		if target.Collides {
-	// 			gw.Sesh.Send("Ouch! You bumped into a wall.")
-	// 			return
-	// 		}
-	// 		if top := target.Top(); top != nil {
-	// 			if col, ok := top.(Collider); ok && col.Collides(world, mob.ID()) {
-	// 				gw.Sesh.Send("You're blocked by " + col.Name() + ".")
-	// 				return
-	// 			}
-	// 		}
-	// 		m.Move(mob, loc.X, loc.Y)
-	// 		// go func() {
-	// 		// 	gw.World.apply <- PlaceAction{ID: gw.Char.ID(), Loc: loc, Src: gw.Sesh, Collide: true}
-	// 		// }()
-	// 	}}
-	// }
 	return true
 }
 
@@ -107,6 +96,7 @@ func (gw *GameWindow) showMove() bool {
 	}
 	up := gw.World.Up()
 	if m, ok := up.(*Mob); ok {
+		gw.startLoc = m.Loc()
 		gw.Sesh.PushWindow(&MoveWindow{
 			World:   gw.World,
 			Sesh:    gw.Sesh,
@@ -136,6 +126,7 @@ func (gw *GameWindow) showAttack() bool {
 			World:   gw.World,
 			Sesh:    gw.Sesh,
 			Char:    m,
+			Weapon:  m.Weapon(),
 			cursorX: -1,
 			cursorY: -1,
 			callback: func(acted bool) {
@@ -146,6 +137,43 @@ func (gw *GameWindow) showAttack() bool {
 					}
 				}
 			}})
+	}
+	return true
+}
+
+func (gw *GameWindow) showCast() bool {
+	if gw.acted {
+		return true
+	}
+	up := gw.World.Up()
+	if m, ok := up.(*Mob); ok {
+		spells := m.Spells()
+		if len(spells) == 0 {
+			return true
+		}
+		gw.Sesh.PushWindow(&SpellsWindow{
+			World: gw.World,
+			Sesh:  gw.Sesh,
+			Char:  m,
+			callback: func(i int) {
+				// TODO: check i validity & MP cost
+				gw.Sesh.PushWindow(&AttackWindow{
+					World:   gw.World,
+					Sesh:    gw.Sesh,
+					Char:    m,
+					Weapon:  *spells[i],
+					cursorX: -1,
+					cursorY: -1,
+					callback: func(acted bool) {
+						if acted {
+							gw.acted = true
+							if !gw.canDoSomething() {
+								gw.nextTurn()
+							}
+						}
+					}})
+			},
+		})
 	}
 	return true
 }
@@ -214,12 +242,17 @@ nextline:
 	helpBar := ""
 	if !gw.moved {
 		helpBar += "m) Move"
+	} else if !gw.acted {
+		helpBar += "u) Undo move"
 	}
 	if len(helpBar) > 0 {
 		helpBar += " "
 	}
 	if !gw.acted {
 		helpBar += "a) Attack"
+		if mob, ok := up.(*Mob); ok && len(mob.Spells()) > 0 {
+			helpBar += " c) Cast spell"
+		}
 	}
 	if len(helpBar) > 0 {
 		helpBar += " "

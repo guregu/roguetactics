@@ -55,6 +55,7 @@ type Mob struct {
 	move  int // move range
 
 	weapon *Weapon
+	spells []*Weapon
 
 	hp    int
 	maxHP int
@@ -168,6 +169,10 @@ func (m *Mob) Weapon() Weapon {
 	return weaponFist
 }
 
+func (m *Mob) Spells() []*Weapon {
+	return m.spells
+}
+
 func (m *Mob) HP() int {
 	return m.hp
 }
@@ -182,6 +187,16 @@ func (m *Mob) MP() int {
 
 func (m *Mob) MaxMP() int {
 	return m.maxMP
+}
+
+func (m *Mob) AddMP(n int) {
+	m.mp += n
+	if m.mp > m.maxMP {
+		m.mp = m.maxMP
+	}
+	if m.mp < 0 {
+		m.mp = 0
+	}
 }
 
 func (m *Mob) Dead() bool {
@@ -202,6 +217,9 @@ func (m *Mob) Attackable() bool {
 
 func (m *Mob) Damage(dmg int) int {
 	m.hp -= dmg
+	if m.hp > m.maxHP {
+		m.hp = m.maxHP
+	}
 	if m.hp <= 0 {
 		m.loc.Z = 1
 	}

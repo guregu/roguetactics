@@ -323,6 +323,8 @@ func (sba StartBattleAction) Apply(w *World) {
 	for teamID, team := range sba.Battle.Teams {
 		for i, unit := range team.Units {
 			unit.loc = m.SpawnPoints[teamID][i]
+			unit.hp = unit.maxHP
+			unit.mp = unit.maxMP
 			w.Add(unit)
 			n++
 		}
@@ -395,14 +397,21 @@ func (ra RemoveAction) Apply(w *World) {
 
 type AttackAction struct {
 	Source *Mob
+	Weapon Weapon
 	Target *Mob
 }
 
 func (aa AttackAction) Apply(w *World) {
-	weapon := aa.Source.Weapon()
+	weapon := aa.Weapon
 	dmg := weapon.RollDamage()
+	if weapon.DamageType == DamageHealing {
+		dmg = -dmg
+	}
 	aa.Target.Damage(dmg)
 	msg := fmt.Sprintf("%s attacked %s with %s for %d damage!", aa.Source.Name(), aa.Target.Name(), weapon.Name, dmg)
+	if dmg < 0 {
+		msg = fmt.Sprintf("%s heals %s with %s for %d HP!", aa.Source.Name(), aa.Target.Name(), weapon.Name, -dmg)
+	}
 	w.Broadcast(msg)
 	if aa.Target.Dead() {
 		w.Broadcast(fmt.Sprintf("%s died.", aa.Target.Name()))
@@ -500,6 +509,7 @@ type MoveState struct {
 	Path   []Loc
 	Delete bool
 	Speed  int
+	OnEnd  func(w *World)
 
 	i    int
 	wait int
@@ -507,6 +517,9 @@ type MoveState struct {
 
 func (ms *MoveState) Run(w *World) bool {
 	if len(ms.Path) == 0 {
+		if ms.OnEnd != nil {
+			ms.OnEnd(w)
+		}
 		return true
 	}
 	if ms.wait < ms.Speed {
@@ -523,6 +536,62 @@ func (ms *MoveState) Run(w *World) bool {
 	}
 	if ms.Delete {
 		w.Delete(ms.Obj.ID())
+	}
+	if ms.OnEnd != nil {
+		ms.OnEnd(w)
+	}
+	return true
+}
+
+type AttackState struct {
+	Char     *Mob
+	Targets  []*Mob
+	Weapon   Weapon
+	ProjPath []Loc
+	HitLocs  []Loc
+}
+
+func (as AttackState) Run(w *World) bool {
+	wep := as.Weapon
+	for _, t := range as.Targets {
+		w.apply <- AttackAction{
+			Source: as.Char,
+			Weapon: wep,
+			Target: t,
+		}
+	}
+	var onend func(*World)
+	if wep.HitGlyph != nil && len(as.HitLocs) > 0 {
+		onend = func(w *World) {
+			for _, loc := range as.HitLocs {
+				loc := loc
+				loc.Z = 999
+				fx := &Effect{
+					loc:   loc,
+					glyph: *wep.HitGlyph,
+					life:  15,
+				}
+				w.Add(fx)
+			}
+		}
+	}
+	if wep.projectile != nil && len(as.ProjPath) > 0 {
+		proj := wep.projectile()
+		proj.Move(as.ProjPath[0])
+		w.Add(proj)
+		w.push <- &MoveState{
+			Obj:    proj,
+			Path:   as.ProjPath,
+			Delete: true,
+			Speed:  1,
+			OnEnd:  onend,
+		}
+	} else if onend != nil {
+		onend(w)
+	}
+
+	if wep.MPCost > 0 {
+		as.Char.AddMP(-wep.MPCost)
 	}
 	return true
 }
@@ -598,6 +667,7 @@ func (ai *EnemyAIState) Run(w *World) bool {
 	if ai.self.CanAttack(ai.target) {
 		w.apply <- AttackAction{
 			Source: ai.self,
+			Weapon: ai.self.Weapon(),
 			Target: ai.target,
 		}
 		ai.acted = true

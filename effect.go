@@ -5,6 +5,8 @@ type Effect struct {
 	loc   Loc
 	glyph Glyph
 	name  string
+
+	life int
 }
 
 func (e *Effect) Create(w *World) {
@@ -34,9 +36,13 @@ func (e *Effect) Move(loc Loc) {
 	e.loc = loc
 }
 
-// func (e *Effect) Tick(w *World, tick int64) {
-// 	e.life--
-// 	if e.life <= 0 {
-// 		w.Delete(e.ID())
-// 	}
-// }
+func (e *Effect) Tick(w *World, tick int64) {
+	if e.life == -1 {
+		return
+	}
+
+	e.life--
+	if e.life <= 0 {
+		w.Delete(e.ID())
+	}
+}

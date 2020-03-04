@@ -8,7 +8,7 @@ type AttackWindow struct {
 	World    *World
 	Sesh     *Sesh
 	Char     *Mob
-	Range    int
+	Weapon   Weapon
 	Self     bool
 	Readonly bool
 	done     bool
@@ -21,41 +21,9 @@ type AttackWindow struct {
 func (mw *AttackWindow) Render(scr [][]Glyph) {
 	loc := mw.Char.Loc()
 	m := mw.World.Map(loc.Map)
-	wep := mw.Char.Weapon()
+	wep := mw.Weapon
 	attackRange := wep.Range
-	for y := loc.Y - attackRange; y <= loc.Y+attackRange; y++ {
-		if y < 0 {
-			continue
-		}
-		if y >= m.Height() {
-			break
-		}
-		for x := loc.X - attackRange; x <= loc.X+attackRange; x++ {
-			if x < 0 {
-				continue
-			}
-			if x >= m.Width() {
-				break
-			}
-			if !mw.Self && loc.X == x && loc.Y == y {
-				continue
-			}
-			if abs(loc.X-x)+abs(loc.Y-y) > attackRange {
-				continue
-			}
-			if wep.Targeting == TargetingCross {
-				if (loc.X != x) && (loc.Y != y) {
-					continue
-				}
-			}
-			scr[y][x].BG = 130
-			// tile := m.TileAt(x, y)
-			// top := tile.Top()
-			// if !tile.Collides && top == nil {
-			// 	scr[y][x].BG = ColorOlive
-			// }
-		}
-	}
+	highlightRange(scr, loc, m, mw.Self, attackRange, wep.Targeting, 130)
 
 	help := "Attack: click or arrow keys to target; ESC to cancel"
 	if wep.Targeting == TargetingFree {
@@ -64,10 +32,14 @@ func (mw *AttackWindow) Render(scr [][]Glyph) {
 	copyString(scr[len(scr)-1], help, true)
 
 	if mw.cursorX != -1 && mw.cursorY != -1 {
-		// glyph := mw.Char.Glyph()
-		// scr[mw.cursorY][mw.cursorX].Rune = 'X'
-		// scr[mw.cursorY][mw.cursorX].FG = glyph.FG
-		// scr[mw.cursorY][mw.cursorX].BG = ColorBlack
+		switch wep.Hitbox {
+		case HitboxSingle:
+			scr[mw.cursorY][mw.cursorX].BG = ColorOlive
+		case HitboxCross:
+			highlightRange(scr, Loc{Map: loc.Map, X: mw.cursorX, Y: mw.cursorY}, m, true, wep.HitboxSize, TargetingCross, ColorOlive)
+		case HitboxBlob:
+			highlightRange(scr, Loc{Map: loc.Map, X: mw.cursorX, Y: mw.cursorY}, m, true, wep.HitboxSize, TargetingFree, ColorOlive)
+		}
 
 		if target, ok := m.TileAt(mw.cursorX, mw.cursorY).Top().(*Mob); ok {
 			status := append(GlyphsOf(" ↪︎"), target.StatusLine()...)
@@ -75,6 +47,8 @@ func (mw *AttackWindow) Render(scr [][]Glyph) {
 		} else {
 			copyString(scr[len(scr)-2], " ↪︎", true)
 		}
+	} else {
+		copyString(scr[len(scr)-2], " ↪︎", true)
 	}
 }
 
@@ -105,7 +79,7 @@ func (mw *AttackWindow) Input(input string) bool {
 		}
 	}
 	loc := mw.Char.Loc()
-	wep := mw.Char.Weapon()
+	wep := mw.Weapon
 
 	if wep.Targeting == TargetingFree {
 		switch input {
@@ -144,38 +118,55 @@ func (mw *AttackWindow) Click(x, y int) bool {
 	// TODO: check valid range
 	loc := mw.Char.Loc()
 	m := mw.World.Map(loc.Map)
-	target, blocked, path := m.Raycast(loc, Loc{Map: m.Name, X: x, Y: y})
-	fmt.Println("TARGET", target, "BLOCKED", blocked, "PATH", path)
-	if (target == nil && !blocked) || (target != nil && !target.Attackable()) {
-		mw.Sesh.Bell()
-		return true
-	}
-	wep := mw.Char.Weapon()
-	if len(path) > wep.Range ||
-		(wep.Targeting == TargetingCross && ((loc.X != x) && (loc.Y != y))) {
-		// out of range
-		mw.Sesh.Bell()
-		return true
-	}
-	if blocked {
-		mw.Sesh.Send(fmt.Sprintf("%s's attack was obstructed.", mw.Char.Name()))
+	wep := mw.Weapon
+	targetLoc := Loc{Map: m.Name, X: x, Y: y}
+	canAttack := wep.Magic
+	var targets []*Mob
+	var projpath []Loc
+	var hitlocs []Loc
+	if wep.Magic {
+		t, hit := findTargets(targetLoc, m, true, wep.HitboxSize, wep.Hitbox)
+		if len(t) == 0 {
+			mw.Sesh.Bell()
+			return true
+		}
+		targets = t
+		hitlocs = hit
+		_, _, projpath = m.Raycast(loc, targetLoc, true)
 	} else {
-		mw.World.apply <- AttackAction{
-			Source: mw.Char,
-			Target: target,
+		target, blocked, path := m.Raycast(loc, targetLoc, false)
+		fmt.Println("TARGET", target, "BLOCKED", blocked, "PATH", path)
+		if (target == nil && !blocked) || (target != nil && !target.Attackable()) {
+			mw.Sesh.Bell()
+			return true
+		}
+		if len(path) > wep.Range ||
+			(wep.Targeting == TargetingCross && ((loc.X != x) && (loc.Y != y))) {
+			// out of range
+			mw.Sesh.Bell()
+			return true
+		}
+		if blocked {
+			mw.Sesh.Send(fmt.Sprintf("%s's attack was obstructed.", mw.Char.Name()))
+		} else {
+			canAttack = true
+			targets = []*Mob{target}
+			projpath = path
 		}
 	}
-	if wep.projectile != nil && len(path) > 0 {
-		proj := wep.projectile()
-		proj.Move(path[0])
-		mw.World.Add(proj)
-		mw.World.push <- &MoveState{
-			Obj:    proj,
-			Path:   path,
-			Delete: true,
-			Speed:  1,
-		}
+
+	if !canAttack {
+		return true
 	}
+
+	mw.World.push <- AttackState{
+		Char:     mw.Char,
+		Targets:  targets,
+		Weapon:   wep,
+		ProjPath: projpath,
+		HitLocs:  hitlocs,
+	}
+
 	mw.done = true
 	mw.callback(true)
 	return true
@@ -217,6 +208,89 @@ func (mw *AttackWindow) moveCursor(dx, dy int) {
 	if mw.cursorY >= m.Height() {
 		mw.cursorY = m.Height() - 1
 	}
+}
+
+func highlightRange(scr [][]Glyph, loc Loc, m *Map, selfOK bool, size int, targeting TargetingType, bgColor int) {
+	for y := loc.Y - size; y <= loc.Y+size; y++ {
+		if y < 0 {
+			continue
+		}
+		if y >= m.Height() {
+			break
+		}
+		for x := loc.X - size; x <= loc.X+size; x++ {
+			if x < 0 {
+				continue
+			}
+			if x >= m.Width() {
+				break
+			}
+			if !selfOK && loc.X == x && loc.Y == y {
+				continue
+			}
+			if abs(loc.X-x)+abs(loc.Y-y) > size {
+				continue
+			}
+			if targeting == TargetingCross {
+				if (loc.X != x) && (loc.Y != y) {
+					continue
+				}
+			}
+			scr[y][x].BG = bgColor
+			// tile := m.TileAt(x, y)
+			// top := tile.Top()
+			// if !tile.Collides && top == nil {
+			// 	scr[y][x].BG = ColorOlive
+			// }
+		}
+	}
+}
+
+func findTargets(loc Loc, m *Map, selfOK bool, size int, hitbox HitboxType) (targets []*Mob, aoe []Loc) {
+	if hitbox == HitboxSingle {
+		for _, obj := range m.TileAtLoc(loc).Objects {
+			if mob, ok := obj.(*Mob); ok {
+				return []*Mob{mob}, []Loc{loc}
+			}
+		}
+		return nil, []Loc{loc}
+	}
+
+	for y := loc.Y - size; y <= loc.Y+size; y++ {
+		if y < 0 {
+			continue
+		}
+		if y >= m.Height() {
+			break
+		}
+		for x := loc.X - size; x <= loc.X+size; x++ {
+			if x < 0 {
+				continue
+			}
+			if x >= m.Width() {
+				break
+			}
+			if !selfOK && loc.X == x && loc.Y == y {
+				continue
+			}
+			if abs(loc.X-x)+abs(loc.Y-y) > size {
+				continue
+			}
+			if hitbox == HitboxCross {
+				if (loc.X != x) && (loc.Y != y) {
+					continue
+				}
+			}
+
+			aoe = append(aoe, Loc{Map: loc.Map, X: x, Y: y})
+			for _, obj := range m.TileAt(x, y).Objects {
+				if mob, ok := obj.(*Mob); ok {
+					targets = append(targets, mob)
+				}
+			}
+		}
+	}
+	return targets, aoe
 }
 
 var (

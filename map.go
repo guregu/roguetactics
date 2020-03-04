@@ -220,7 +220,7 @@ func (m *Map) FindPathNextTo(from *Mob, to *Mob) []Loc {
 	// return locs
 }
 
-func (m *Map) Raycast(from, to Loc) (hit *Mob, blocked bool, path []Loc) {
+func (m *Map) Raycast(from, to Loc, ignoreObstacles bool) (hit *Mob, blocked bool, path []Loc) {
 	x0 := from.X
 	y0 := from.Y
 	x1 := to.X
@@ -251,12 +251,14 @@ func (m *Map) Raycast(from, to Loc) (hit *Mob, blocked bool, path []Loc) {
 		if !(x0 == from.X && y0 == from.Y) {
 			path = append(path, Loc{Map: m.Name, X: x0, Y: y0})
 			tile := m.TileAt(x0, y0)
-			for _, obj := range tile.Objects {
-				if mob, ok := obj.(*Mob); ok {
-					return mob, false, path
+			if !ignoreObstacles {
+				for _, obj := range tile.Objects {
+					if mob, ok := obj.(*Mob); ok {
+						return mob, false, path
+					}
 				}
 			}
-			if tile.Collides {
+			if !ignoreObstacles && tile.Collides {
 				return nil, true, path
 			}
 		}

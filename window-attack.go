@@ -25,9 +25,13 @@ func (mw *AttackWindow) Render(scr [][]Glyph) {
 	attackRange := wep.Range
 	highlightRange(scr, loc, m, mw.Self, attackRange, wep.Targeting, 130)
 
-	help := "Attack: click or arrow keys to target; ESC to cancel"
+	helpheader := "Attack: "
+	if mw.Weapon.Magic {
+		helpheader = "Cast " + mw.Weapon.Name + ": "
+	}
+	help := helpheader + "click or arrow keys to target; ESC to cancel"
 	if wep.Targeting == TargetingFree {
-		help = "Attack: click or arrow keys to target, then . to confirm; ESC to cancel"
+		help = helpheader + "click or arrow keys to target, then . to confirm; ESC to cancel"
 	}
 	copyString(scr[len(scr)-1], help, true)
 
@@ -75,6 +79,9 @@ func (mw *AttackWindow) Input(input string) bool {
 		case '.', 13:
 			if mw.cursorX != -1 && mw.cursorY != -1 {
 				return mw.Click(mw.cursorX, mw.cursorY)
+			} else if mw.Self {
+				loc := mw.Char.Loc()
+				return mw.Click(loc.X, loc.Y)
 			}
 		}
 	}
@@ -115,7 +122,6 @@ func (mw *AttackWindow) Click(x, y int) bool {
 		return true
 	}
 	fmt.Println("attack click", x, y)
-	// TODO: check valid range
 	loc := mw.Char.Loc()
 	m := mw.World.Map(loc.Map)
 	wep := mw.Weapon
@@ -125,6 +131,10 @@ func (mw *AttackWindow) Click(x, y int) bool {
 	var projpath []Loc
 	var hitlocs []Loc
 	if wep.Magic {
+		if !withinRange(loc, m, true, wep.Range, wep.Targeting, x, y) {
+			mw.Sesh.Bell()
+			return true
+		}
 		t, hit := findTargets(targetLoc, m, true, wep.HitboxSize, wep.Hitbox)
 		if len(t) == 0 {
 			mw.Sesh.Bell()
@@ -147,7 +157,7 @@ func (mw *AttackWindow) Click(x, y int) bool {
 			return true
 		}
 		if blocked {
-			mw.Sesh.Send(fmt.Sprintf("%s's attack was obstructed.", mw.Char.Name()))
+			mw.Sesh.Send(fmt.Sprintf("%s's attack is obstructed.", mw.Char.Name()))
 		} else {
 			canAttack = true
 			targets = []*Mob{target}
@@ -159,7 +169,7 @@ func (mw *AttackWindow) Click(x, y int) bool {
 		return true
 	}
 
-	mw.World.push <- AttackState{
+	mw.World.push <- &AttackState{
 		Char:     mw.Char,
 		Targets:  targets,
 		Weapon:   wep,
@@ -244,6 +254,41 @@ func highlightRange(scr [][]Glyph, loc Loc, m *Map, selfOK bool, size int, targe
 			// }
 		}
 	}
+}
+
+func withinRange(loc Loc, m *Map, selfOK bool, size int, targeting TargetingType, targetX, targetY int) bool {
+	for y := loc.Y - size; y <= loc.Y+size; y++ {
+		if y < 0 {
+			continue
+		}
+		if y >= m.Height() {
+			break
+		}
+		for x := loc.X - size; x <= loc.X+size; x++ {
+			if x < 0 {
+				continue
+			}
+			if x >= m.Width() {
+				break
+			}
+			if !selfOK && loc.X == x && loc.Y == y {
+				return false
+			}
+			if abs(loc.X-x)+abs(loc.Y-y) > size {
+				continue
+			}
+			if targeting == TargetingCross {
+				if (loc.X != x) && (loc.Y != y) {
+					continue
+				}
+			}
+
+			if x == targetX && y == targetY {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func findTargets(loc Loc, m *Map, selfOK bool, size int, hitbox HitboxType) (targets []*Mob, aoe []Loc) {

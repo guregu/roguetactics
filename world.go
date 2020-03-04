@@ -29,9 +29,10 @@ type World struct {
 	busy   *int32
 
 	// overall game state
-	player   Team
-	current  *Map
-	gameOver bool
+	player    Team
+	current   *Map
+	gameOver  bool
+	battleWon bool
 
 	apply      chan Action
 	applySync  chan Action
@@ -185,8 +186,12 @@ func (w *World) Run() {
 				atomic.StoreInt32(w.busy, busy)
 			}
 			w.Tick()
-			if !w.gameOver && w.shouldEndGame() {
-				w.endGame()
+			if !w.gameOver {
+				if w.shouldEndGame() {
+					w.endGame()
+				} else if !w.battleWon && w.shouldWin() {
+					w.winBattle()
+				}
 			}
 			w.notify()
 		}
@@ -282,12 +287,33 @@ func (w *World) shouldEndGame() bool {
 	return true
 }
 
+func (w *World) shouldWin() bool {
+	if w.current == nil {
+		return false
+	}
+	for _, obj := range w.current.Objects {
+		if mob, ok := obj.(*Mob); ok && mob.Team() != PlayerTeam {
+			if !mob.Dead() {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func (w *World) endGame() {
 	w.push <- GameOverState{}
 	for sesh := range w.seshes {
 		sesh.PushWindow(&GameOverWindow{World: w, Sesh: sesh})
 	}
 	w.gameOver = true
+}
+
+func (w *World) winBattle() {
+	w.battleWon = true
+	for sesh := range w.seshes {
+		sesh.PushWindow(&VictoryWindow{World: w, Sesh: sesh})
+	}
 }
 
 type ListenAction struct {
@@ -318,6 +344,7 @@ func (sba StartBattleAction) Apply(w *World) {
 	w.current = m
 	w.turn = 0
 	w.waitlist = nil
+	w.battleWon = false
 	// TODO: map spawns
 	n := 0
 	for teamID, team := range sba.Battle.Teams {
@@ -549,16 +576,21 @@ type AttackState struct {
 	Weapon   Weapon
 	ProjPath []Loc
 	HitLocs  []Loc
+
+	done bool
 }
 
-func (as AttackState) Run(w *World) bool {
+func (as *AttackState) Run(w *World) bool {
 	wep := as.Weapon
-	for _, t := range as.Targets {
-		w.apply <- AttackAction{
-			Source: as.Char,
-			Weapon: wep,
-			Target: t,
+	if as.done {
+		for _, t := range as.Targets {
+			w.apply <- AttackAction{
+				Source: as.Char,
+				Weapon: wep,
+				Target: t,
+			}
 		}
+		return true
 	}
 	var onend func(*World)
 	if wep.HitGlyph != nil && len(as.HitLocs) > 0 {
@@ -593,7 +625,8 @@ func (as AttackState) Run(w *World) bool {
 	if wep.MPCost > 0 {
 		as.Char.AddMP(-wep.MPCost)
 	}
-	return true
+	as.done = true
+	return false
 }
 
 type EnemyAIState struct {

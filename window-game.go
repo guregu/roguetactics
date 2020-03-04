@@ -162,6 +162,7 @@ func (gw *GameWindow) showCast() bool {
 					Sesh:    gw.Sesh,
 					Char:    m,
 					Weapon:  *spells[i],
+					Self:    true,
 					cursorX: -1,
 					cursorY: -1,
 					callback: func(acted bool) {
@@ -212,9 +213,10 @@ nextline:
 			scr[y][x] = tile.Glyph()
 		}
 	}
-	for i := 0; i < 2; i++ {
-		n := len(gw.Msgs) - 2 + i
-		y := len(scr) - 5 + i
+	const chatLines = 4
+	for i := 0; i < chatLines; i++ {
+		n := len(gw.Msgs) - chatLines + i
+		y := len(scr) - chatLines - 3 + i
 		if n < 0 || n > len(gw.Msgs) {
 			copyString(scr[y], "", true)
 		} else {
@@ -325,6 +327,43 @@ func (gw *GameOverWindow) ShouldRemove() bool {
 }
 
 func (gw *GameOverWindow) Mouseover(x, y int) bool {
+	return false
+}
+
+type VictoryWindow struct {
+	World *World
+	Sesh  *Sesh
+	done  bool
+}
+
+func (gw *VictoryWindow) Render(scr [][]Glyph) {
+	lines := []string{"Victory!", "You defeated the enemy team.", "", "Press ENTER to continue."}
+	drawCenteredBox(scr, lines, 17)
+}
+
+func (gw *VictoryWindow) Cursor() (x, y int) {
+	return 0, 0 //TODO
+}
+
+func (gw *VictoryWindow) Input(input string) bool {
+	switch input[0] {
+	case 13: //ENTER
+		gw.Sesh.PushWindow(&TitleWindow{World: gw.World, Sesh: gw.Sesh})
+		gw.World.reset()
+		gw.done = true
+	}
+	return true
+}
+
+func (gw *VictoryWindow) Click(x, y int) bool {
+	return true
+}
+
+func (gw *VictoryWindow) ShouldRemove() bool {
+	return gw.done
+}
+
+func (gw *VictoryWindow) Mouseover(x, y int) bool {
 	return false
 }
 

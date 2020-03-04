@@ -253,7 +253,7 @@ func (m *Map) Raycast(from, to Loc, ignoreObstacles bool) (hit *Mob, blocked boo
 			tile := m.TileAt(x0, y0)
 			if !ignoreObstacles {
 				for _, obj := range tile.Objects {
-					if mob, ok := obj.(*Mob); ok {
+					if mob, ok := obj.(*Mob); ok && !mob.Dead() {
 						return mob, false, path
 					}
 				}

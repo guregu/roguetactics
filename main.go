@@ -40,7 +40,7 @@ func NewSesh(s Conn, w *World) *Sesh {
 	return &Sesh{
 		world: w,
 		ssh:   s,
-		disp:  NewDisplay(80, 25),
+		disp:  NewDisplay(80, 27),
 	}
 }
 

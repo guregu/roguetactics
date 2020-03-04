@@ -78,7 +78,13 @@ func (m *Mob) ID() ID {
 }
 
 func (m *Mob) Loc() Loc {
-	return m.loc
+	loc := m.loc
+	if m.Dead() {
+		loc.Z = 1
+	} else {
+		loc.Z = 100
+	}
+	return loc
 }
 
 func (m *Mob) Name() string {
@@ -95,7 +101,11 @@ func (m *Mob) Glyph() Glyph {
 		corpse.Rune = '%'
 		return corpse
 	}
-	return m.glyph
+	glyph := m.glyph
+	if m.HP() <= m.MaxHP()/4 {
+		glyph.BG = ColorDarkRed
+	}
+	return glyph
 }
 
 func (m *Mob) CT() int {

@@ -14,7 +14,7 @@ type SpellsWindow struct {
 
 func (gw *SpellsWindow) Render(scr [][]Glyph) {
 	spells := gw.Char.Spells()
-	var lines = []string{"Which spell to cast?", ""}
+	var lines = []string{"Which spell to cast? (ESC to cancel)", ""}
 	for i, spell := range spells {
 		opt := string(rune('a' + i))
 		lines = append(lines, fmt.Sprintf("%s) %s (%d MP)", opt, spell.Name, spell.MPCost))
@@ -33,7 +33,13 @@ func (gw *SpellsWindow) Input(input string) bool {
 			gw.done = true
 		default:
 			i := int(input[0] - 'a')
-			if i >= 0 && i < len(gw.Char.Spells()) {
+			spells := gw.Char.Spells()
+			if i >= 0 && i < len(spells) {
+				if spells[i].MPCost > gw.Char.MP() {
+					gw.Sesh.Bell()
+					gw.Sesh.Send(fmt.Sprintf("Not enough MP to cast %s.", spells[i].Name))
+					return true
+				}
 				gw.callback(i)
 				gw.done = true
 			}

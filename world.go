@@ -343,6 +343,21 @@ type StartBattleAction struct {
 
 func (sba StartBattleAction) Apply(w *World) {
 	fmt.Println("START BATTLE", sba.Level)
+
+	if sba.Level > 0 {
+		for i := 0; i < len(w.player.Units); i++ {
+			if !w.player.Units[i].Dead() {
+				continue
+			}
+			fmt.Println("Dead:", w.player.Units[i].Name())
+			if i < len(w.player.Units)-1 {
+				copy(w.player.Units[i:], w.player.Units[i+1:])
+			}
+			w.player.Units[len(w.player.Units)-1] = nil
+			w.player.Units = w.player.Units[:len(w.player.Units)-1]
+		}
+	}
+
 	battle := newBattle(sba.Level, w.player)
 
 	m := w.Map(battle.Map)
@@ -358,8 +373,7 @@ func (sba StartBattleAction) Apply(w *World) {
 	for teamID, team := range battle.Teams {
 		for i, unit := range team.Units {
 			unit.loc = m.SpawnPoints[teamID][i]
-			unit.hp = unit.maxHP
-			unit.mp = unit.maxMP
+			unit.Reset()
 			w.Add(unit)
 			n++
 		}

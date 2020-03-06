@@ -69,6 +69,14 @@ type Mob struct {
 	acted bool
 }
 
+func (m *Mob) Reset() {
+	m.hp = m.maxHP
+	m.mp = m.maxMP
+	m.ct = 0
+	m.moved = false
+	m.acted = false
+}
+
 func (m *Mob) Create(w *World) {
 	m.id = w.NextID()
 	if m.loc.Map != "" {
@@ -198,6 +206,9 @@ func (m *Mob) Armor() Armor {
 }
 
 func (m *Mob) HP() int {
+	if m.hp < 0 {
+		return 0
+	}
 	return m.hp
 }
 
@@ -242,7 +253,7 @@ func (m *Mob) Attackable() bool {
 func (m *Mob) Damage(dmg int, src Weapon) int {
 	if dmg > 0 && !src.Magic {
 		dmg -= m.Armor().Defense
-		if dmg < 0 {
+		if dmg <= 0 {
 			dmg = 1
 		}
 	}

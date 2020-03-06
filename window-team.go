@@ -133,6 +133,7 @@ func (gw *TeamWindow) Render(scr [][]Glyph) {
 
 	w.Flush()
 	lines := strings.Split(buf.String(), "\n")
+	lines = lines[:len(lines)-1]
 	color := 17
 	if gw.Team.ID == AITeam {
 		color = 52

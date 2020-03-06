@@ -51,7 +51,7 @@ func (gw *GameWindow) Input(in string) bool {
 		return gw.nextTurn()
 	case "c":
 		return gw.showCast()
-	case "q":
+	case "q", ";":
 		gw.Sesh.PushWindow(&FarlookWindow{
 			World:   gw.World,
 			Sesh:    gw.Sesh,
@@ -71,7 +71,7 @@ func (gw *GameWindow) Input(in string) bool {
 			m.Move(mob, gw.startLoc.X, gw.startLoc.Y)
 			gw.moved = false
 		}
-	case "t", "i":
+	case "t", "i", "\t":
 		gw.Sesh.PushWindow(&TeamWindow{
 			World: gw.World,
 			Sesh:  gw.Sesh,

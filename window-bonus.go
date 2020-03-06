@@ -43,7 +43,7 @@ func (gw *BonusWindow) Render(scr [][]Glyph) {
 		}
 		fmt.Fprintf(w, "%s", unit.Name())
 
-		if spells := len(unit.Spells()); spells > spellCount {
+		if spells := len(unit.Spells()); spells > spellCount && !unit.Dead() {
 			spellCount = spells
 		}
 	}
@@ -67,7 +67,11 @@ func (gw *BonusWindow) Render(scr [][]Glyph) {
 		} else {
 			fmt.Fprint(w, "\t")
 		}
-		fmt.Fprintf(w, "HP: %d", unit.MaxHP())
+		if unit.Dead() {
+			fmt.Fprint(w, "Dead")
+		} else {
+			fmt.Fprintf(w, "HP: %d", unit.MaxHP())
+		}
 	}
 	fmt.Fprintln(w)
 
@@ -78,7 +82,7 @@ func (gw *BonusWindow) Render(scr [][]Glyph) {
 		} else {
 			fmt.Fprint(w, "\t")
 		}
-		if unit.MaxMP() > 0 {
+		if unit.MaxMP() > 0 && !unit.Dead() {
 			fmt.Fprintf(w, "MP: %d", unit.MaxMP())
 		}
 	}
@@ -91,7 +95,9 @@ func (gw *BonusWindow) Render(scr [][]Glyph) {
 		} else {
 			fmt.Fprint(w, "\t")
 		}
-		fmt.Fprintf(w, "Speed: %d", unit.Speed())
+		if !unit.Dead() {
+			fmt.Fprintf(w, "Speed: %d", unit.Speed())
+		}
 	}
 	fmt.Fprintln(w)
 
@@ -102,7 +108,9 @@ func (gw *BonusWindow) Render(scr [][]Glyph) {
 		} else {
 			fmt.Fprint(w, "\t")
 		}
-		fmt.Fprintf(w, "%s (%s)", unit.Weapon().Name, unit.Weapon().Damage)
+		if !unit.Dead() {
+			fmt.Fprintf(w, "%s (%s)", unit.Weapon().Name, unit.Weapon().Damage)
+		}
 	}
 	fmt.Fprintln(w)
 
@@ -113,7 +121,9 @@ func (gw *BonusWindow) Render(scr [][]Glyph) {
 		} else {
 			fmt.Fprint(w, "\t")
 		}
-		fmt.Fprintf(w, "%s (%d)", unit.Armor().Name, unit.Armor().Defense)
+		if !unit.Dead() {
+			fmt.Fprintf(w, "%s (%d)", unit.Armor().Name, unit.Armor().Defense)
+		}
 	}
 	fmt.Fprintln(w)
 
@@ -124,6 +134,9 @@ func (gw *BonusWindow) Render(scr [][]Glyph) {
 				// fmt.Fprint(w, " ")
 			} else {
 				fmt.Fprint(w, "\t")
+			}
+			if unit.Dead() {
+				continue
 			}
 			if spell < len(unit.spells) {
 				fmt.Fprint(w, "☆ ", unit.spells[spell].Name)
@@ -140,6 +153,9 @@ func (gw *BonusWindow) Render(scr [][]Glyph) {
 		} else {
 			fmt.Fprint(w, "\t")
 		}
+		if gw.Team.Units[i].Dead() {
+			continue
+		}
 		fmt.Fprintf(w, "%c) Bonus:", 'a'+i)
 	}
 	fmt.Fprintln(w)
@@ -151,12 +167,16 @@ func (gw *BonusWindow) Render(scr [][]Glyph) {
 		} else {
 			fmt.Fprint(w, "\t")
 		}
+		if gw.Team.Units[i].Dead() {
+			continue
+		}
 		fmt.Fprintf(w, "%s", gw.Bonuses[i].Name)
 	}
 	fmt.Fprintln(w)
 
 	w.Flush()
 	lines := strings.Split(buf.String(), "\n")
+	lines = lines[:len(lines)-1]
 	drawCenteredBox(scr, lines, 17)
 }
 
@@ -188,7 +208,9 @@ func (gw *BonusWindow) Input(input string) bool {
 		default:
 			i := int(input[0] - 'a')
 			if i >= 0 && i < len(gw.Bonuses) {
-				gw.choice = i
+				if !gw.Team.Units[i].Dead() {
+					gw.choice = i
+				}
 			}
 		}
 	}

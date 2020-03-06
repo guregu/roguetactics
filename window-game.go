@@ -51,7 +51,7 @@ func (gw *GameWindow) Input(in string) bool {
 		return gw.nextTurn()
 	case "c":
 		return gw.showCast()
-	case ";":
+	case "q":
 		gw.Sesh.PushWindow(&FarlookWindow{
 			World:   gw.World,
 			Sesh:    gw.Sesh,
@@ -59,7 +59,7 @@ func (gw *GameWindow) Input(in string) bool {
 			cursorX: -1,
 			cursorY: -1,
 		})
-	case "u":
+	case "r":
 		if !gw.moved {
 			return true
 		}
@@ -71,6 +71,10 @@ func (gw *GameWindow) Input(in string) bool {
 			m.Move(mob, gw.startLoc.X, gw.startLoc.Y)
 			gw.moved = false
 		}
+
+	case "W":
+		// TODO: DELETE
+		gw.World.apply <- ForceWinActionDEBUG{}
 	}
 
 	return true
@@ -161,7 +165,7 @@ func (gw *GameWindow) showCast() bool {
 					World:   gw.World,
 					Sesh:    gw.Sesh,
 					Char:    m,
-					Weapon:  *spells[i],
+					Weapon:  spells[i],
 					Self:    true,
 					cursorX: -1,
 					cursorY: -1,
@@ -245,7 +249,7 @@ nextline:
 	if !gw.moved {
 		helpBar += "m) Move"
 	} else if !gw.acted {
-		helpBar += "u) Undo move"
+		helpBar += "r) Reset move"
 	}
 	if len(helpBar) > 0 {
 		helpBar += " "
@@ -256,6 +260,7 @@ nextline:
 			helpBar += " c) Cast spell"
 		}
 	}
+	helpBar += " q) Query"
 	if len(helpBar) > 0 {
 		helpBar += " "
 	}
@@ -337,7 +342,7 @@ type VictoryWindow struct {
 }
 
 func (gw *VictoryWindow) Render(scr [][]Glyph) {
-	lines := []string{"Victory!", "You defeated the enemy team.", "", "Press ENTER to continue."}
+	lines := []string{"Victory!", "You defeated the enemies and descend deeper...", "", "Press ENTER to continue."}
 	drawCenteredBox(scr, lines, 17)
 }
 
@@ -346,10 +351,29 @@ func (gw *VictoryWindow) Cursor() (x, y int) {
 }
 
 func (gw *VictoryWindow) Input(input string) bool {
+	if gw.done {
+		return false
+	}
+
 	switch input[0] {
 	case 13: //ENTER
-		gw.Sesh.PushWindow(&TitleWindow{World: gw.World, Sesh: gw.Sesh})
-		gw.World.reset()
+		if gw.World.level+1 >= len(mapsByLevel) {
+			gw.Sesh.PushWindow(&GameWonWindow{
+				World: gw.World,
+				Sesh:  gw.Sesh,
+			})
+			gw.done = true
+			return true
+		}
+
+		bonuses := generateBonuses(gw.World.player, gw.World.level)
+		gw.Sesh.PushWindow(&BonusWindow{
+			World:   gw.World,
+			Sesh:    gw.Sesh,
+			Team:    gw.World.player,
+			Bonuses: bonuses,
+			choice:  -1,
+		})
 		gw.done = true
 	}
 	return true
@@ -366,6 +390,53 @@ func (gw *VictoryWindow) ShouldRemove() bool {
 func (gw *VictoryWindow) Mouseover(x, y int) bool {
 	return false
 }
+
+type GameWonWindow struct {
+	World *World
+	Sesh  *Sesh
+	done  bool
+}
+
+func (gw *GameWonWindow) Render(scr [][]Glyph) {
+	// TODO scores
+	lines := []string{"YOU'RE WINNER!", "Congratulations, you won the game.", "", "Press ENTER to return to the title screen."}
+	drawCenteredBox(scr, lines, 17)
+}
+
+func (gw *GameWonWindow) Cursor() (x, y int) {
+	return 0, 0 //TODO
+}
+
+func (gw *GameWonWindow) Input(input string) bool {
+	if gw.done {
+		return false
+	}
+
+	switch input[0] {
+	case 13: //ENTER
+		gw.Sesh.PushWindow(&TitleWindow{World: gw.World, Sesh: gw.Sesh})
+		gw.World.reset()
+		gw.done = true
+	}
+	return true
+}
+
+func (gw *GameWonWindow) Click(x, y int) bool {
+	return true
+}
+
+func (gw *GameWonWindow) ShouldRemove() bool {
+	return gw.done
+}
+
+func (gw *GameWonWindow) Mouseover(x, y int) bool {
+	return false
+}
+
+var (
+	_ Window = (*GameWindow)(nil)
+	_ Window = (*GameOverWindow)(nil)
+)
 
 var (
 	_ Window = (*GameWindow)(nil)

@@ -46,7 +46,12 @@ func (mw *AttackWindow) Render(scr [][]Glyph) {
 		}
 
 		if target, ok := m.TileAt(mw.cursorX, mw.cursorY).Top().(*Mob); ok {
-			status := append(GlyphsOf(" ↪︎"), target.StatusLine()...)
+			dmgname := "damage"
+			if wep.DamageType == DamageHealing {
+				dmgname = "healing"
+			}
+			dmginfo := fmt.Sprintf(" (%s: %s)", dmgname, wep.Damage)
+			status := append(append(GlyphsOf(" ↪︎"), target.StatusLine()...), GlyphsOf(dmginfo)...)
 			copyGlyphs(scr[len(scr)-2], status, true)
 		} else {
 			copyString(scr[len(scr)-2], " ↪︎", true)

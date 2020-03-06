@@ -28,8 +28,7 @@ func (mw *TitleWindow) Cursor() (x, y int) {
 func (mw *TitleWindow) Input(input string) bool {
 	switch input[0] {
 	case 13: //ENTER
-		battle := newBattle("dojo", mw.World.player)
-		mw.World.apply <- StartBattleAction{Battle: battle}
+		mw.World.apply <- StartBattleAction{Level: 0}
 		mw.done = true
 	}
 	return true

@@ -50,7 +50,7 @@ func (w Weapon) RollDamage() int {
 
 var weaponSword = Weapon{
 	Name:   "sword",
-	Damage: "2d6+5",
+	Damage: "2d3+2",
 	Range:  1,
 }
 
@@ -62,7 +62,25 @@ var weaponFist = Weapon{
 
 var weaponBite = Weapon{
 	Name:   "bite",
-	Damage: "1d2+1",
+	Damage: "1d3+1",
+	Range:  1,
+}
+
+var weaponScratch = Weapon{
+	Name:   "scratch",
+	Damage: "2d2",
+	Range:  1,
+}
+
+var weaponLick = Weapon{
+	Name:   "lick",
+	Damage: "1d2",
+	Range:  1,
+}
+
+var weaponPeck = Weapon{
+	Name:   "peck",
+	Damage: "1d3",
 	Range:  1,
 }
 
@@ -74,7 +92,7 @@ var weaponShank = Weapon{
 
 var weaponBow = Weapon{
 	Name:       "bow",
-	Damage:     "1d4",
+	Damage:     "2d2+1",
 	Range:      6,
 	Targeting:  TargetingFree,
 	projectile: projectileFunc(GlyphOf('*')),
@@ -82,7 +100,7 @@ var weaponBow = Weapon{
 
 var weaponStaff = Weapon{
 	Name:   "staff",
-	Damage: "1d2+1",
+	Damage: "1d4",
 	Range:  2,
 }
 
@@ -99,9 +117,22 @@ var spellFireball = Weapon{
 	projectile: projectileFunc(Glyph{Rune: 'o', SGR: SGR{FG: ColorRed}}),
 }
 
+var spellMeteor = Weapon{
+	Name:       "meteor",
+	Damage:     "4d3",
+	Range:      6,
+	Targeting:  TargetingFree,
+	Magic:      true,
+	Hitbox:     HitboxBlob,
+	HitboxSize: 4,
+	HitGlyph:   &Glyph{Rune: 'X', SGR: SGR{BG: ColorBrightYellow, FG: ColorRed}},
+	MPCost:     5,
+	projectile: projectileFunc(Glyph{Rune: 'O', SGR: SGR{FG: ColorRed}}),
+}
+
 var spellHeal = Weapon{
 	Name:       "heal",
-	Damage:     "5d5",
+	Damage:     "3d5+5",
 	DamageType: DamageHealing,
 	Range:      6,
 	Targeting:  TargetingFree,
@@ -112,6 +143,30 @@ var spellHeal = Weapon{
 	MPCost:     5,
 }
 
+var spellSmite = Weapon{
+	Name:      "smite",
+	Damage:    "2d5+1",
+	Range:     5,
+	Targeting: TargetingFree,
+	Magic:     true,
+	Hitbox:    HitboxSingle,
+	HitGlyph:  &Glyph{Rune: '✞', SGR: SGR{FG: ColorBrightYellow}},
+	MPCost:    5,
+}
+
+var spellGloria = Weapon{
+	Name:       "gloria",
+	Damage:     "2d5+5",
+	DamageType: DamageHealing,
+	Range:      6,
+	Targeting:  TargetingFree,
+	Magic:      true,
+	Hitbox:     HitboxBlob,
+	HitboxSize: 3,
+	HitGlyph:   &Glyph{Rune: '✚', SGR: SGR{FG: ColorBrightGreen}},
+	MPCost:     10,
+}
+
 func projectileFunc(g Glyph) func() Object {
 	return func() Object {
 		fx := &Effect{
@@ -120,4 +175,19 @@ func projectileFunc(g Glyph) func() Object {
 		}
 		return fx
 	}
+}
+
+type Armor struct {
+	Name    string
+	Defense int
+}
+
+var armorLeather = Armor{
+	Name:    "leather armor",
+	Defense: 1,
+}
+
+var armorRobe = Armor{
+	Name:    "robe",
+	Defense: 0,
 }

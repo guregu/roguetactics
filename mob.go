@@ -54,8 +54,11 @@ type Mob struct {
 	speed int
 	move  int // move range
 
-	weapon *Weapon
-	spells []*Weapon
+	class  Class
+	weapon Weapon
+	spells []Weapon
+
+	armor Armor
 
 	hp    int
 	maxHP int
@@ -172,15 +175,26 @@ func (m *Mob) CanAttack(other *Mob) bool {
 	return false
 }
 
-func (m *Mob) Weapon() Weapon {
-	if m.weapon != nil {
-		return *m.weapon
+func (m *Mob) Class() Class {
+	if m.class == "" {
+		return "Monster"
 	}
-	return weaponFist
+	return m.class
 }
 
-func (m *Mob) Spells() []*Weapon {
+func (m *Mob) Weapon() Weapon {
+	if m.weapon.Damage == "" {
+		return weaponFist
+	}
+	return m.weapon
+}
+
+func (m *Mob) Spells() []Weapon {
 	return m.spells
+}
+
+func (m *Mob) Armor() Armor {
+	return m.armor
 }
 
 func (m *Mob) HP() int {
@@ -225,7 +239,14 @@ func (m *Mob) Attackable() bool {
 	return !m.Dead()
 }
 
-func (m *Mob) Damage(dmg int) int {
+func (m *Mob) Damage(dmg int, src Weapon) int {
+	if dmg > 0 && !src.Magic {
+		dmg -= m.Armor().Defense
+		if dmg < 0 {
+			dmg = 1
+		}
+	}
+
 	m.hp -= dmg
 	if m.hp > m.maxHP {
 		m.hp = m.maxHP

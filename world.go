@@ -33,6 +33,7 @@ type World struct {
 	current   *Map
 	gameOver  bool
 	battleWon bool
+	level     int
 
 	apply      chan Action
 	applySync  chan Action
@@ -336,18 +337,23 @@ func (pa PartAction) Apply(w *World) {
 }
 
 type StartBattleAction struct {
-	Battle Battle
+	Level int
 }
 
 func (sba StartBattleAction) Apply(w *World) {
-	m := w.Map(sba.Battle.Map)
+	fmt.Println("START BATTLE", sba.Level)
+	battle := newBattle(sba.Level, w.player)
+
+	m := w.Map(battle.Map)
+	m.Reset()
+	w.level = sba.Level
 	w.current = m
 	w.turn = 0
 	w.waitlist = nil
 	w.battleWon = false
-	// TODO: map spawns
+
 	n := 0
-	for teamID, team := range sba.Battle.Teams {
+	for teamID, team := range battle.Teams {
 		for i, unit := range team.Units {
 			unit.loc = m.SpawnPoints[teamID][i]
 			unit.hp = unit.maxHP
@@ -364,6 +370,12 @@ func (sba StartBattleAction) Apply(w *World) {
 	}
 
 	w.apply <- NextTurnAction{}
+}
+
+type ForceWinActionDEBUG struct{}
+
+func (ForceWinActionDEBUG) Apply(w *World) {
+	w.winBattle()
 }
 
 type AddAction struct {
@@ -434,7 +446,7 @@ func (aa AttackAction) Apply(w *World) {
 	if weapon.DamageType == DamageHealing {
 		dmg = -dmg
 	}
-	aa.Target.Damage(dmg)
+	dmg = aa.Target.Damage(dmg, weapon)
 	msg := fmt.Sprintf("%s attacked %s with %s for %d damage!", aa.Source.Name(), aa.Target.Name(), weapon.Name, dmg)
 	if dmg < 0 {
 		msg = fmt.Sprintf("%s heals %s with %s for %d HP!", aa.Source.Name(), aa.Target.Name(), weapon.Name, -dmg)
@@ -522,6 +534,15 @@ type NextTurnAction struct{}
 
 func (na NextTurnAction) Apply(w *World) {
 	w.NextTurn()
+}
+
+type ApplyBonusAction struct {
+	Mob   *Mob
+	Bonus Bonus
+}
+
+func (ab ApplyBonusAction) Apply(w *World) {
+	ab.Bonus.Apply(ab.Mob)
 }
 
 type NextTurnState struct{}

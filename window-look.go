@@ -16,6 +16,8 @@ type FarlookWindow struct {
 }
 
 func (mw *FarlookWindow) Render(scr [][]Glyph) {
+	copyString(scr[len(scr)-1], "Query: use arrow keys or mouse to look around, ESC to exit", true)
+
 	const arrow = " ↪︎"
 	if mw.cursorX == -1 || mw.cursorY == -1 {
 		copyString(scr[len(scr)-2], arrow, true)

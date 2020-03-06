@@ -179,7 +179,7 @@ func (cw *ChatWindow) Render(scr [][]Glyph) {
 }
 
 func (cw *ChatWindow) Cursor() (x, y int) {
-	return len(cw.prompt) + len(cw.input), 24
+	return len(cw.prompt) + len(cw.input), 27
 }
 
 func (cw *ChatWindow) Input(input string) bool {
@@ -238,6 +238,12 @@ func drawCenteredBox(scr [][]Glyph, lines []string, bgColor int) {
 	copyStringOffset(scr[1+len(lines)+yoffset], " "+strings.Repeat(" ", linelen)+" ", xoffset)
 	for y := 0; y < len(lines)+2; y++ {
 		for x := 0; x < linelen+2; x++ {
+			if y >= len(scr) {
+				continue
+			}
+			if x >= len(scr[y+yoffset]) {
+				continue
+			}
 			scr[y+yoffset][x+xoffset].BG = bgColor
 		}
 	}

@@ -1,5 +1,6 @@
 package main
 
+/*
 type OverworldWindow struct {
 	World *World
 	Sesh  *Sesh
@@ -43,3 +44,4 @@ func (gw *OverworldWindow) Mouseover(x, y int) bool {
 var (
 	_ Window = (*TitleWindow)(nil)
 )
+*/

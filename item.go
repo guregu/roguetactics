@@ -183,7 +183,7 @@ type Armor struct {
 }
 
 var armorLeather = Armor{
-	Name:    "leather armor",
+	Name:    "jerkin",
 	Defense: 1,
 }
 

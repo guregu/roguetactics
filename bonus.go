@@ -75,7 +75,7 @@ func learnSpellBonus(class Class) func(int, *Mob) Bonus {
 				}
 			}
 			return Bonus{
-				Name: spell.spell.Name,
+				Name: "☆ " + spell.spell.Name,
 				Apply: func(mob *Mob) {
 					mob.spells = append(mob.spells, spell.spell)
 				},

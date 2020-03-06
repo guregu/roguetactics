@@ -34,6 +34,7 @@ type World struct {
 	gameOver  bool
 	battleWon bool
 	level     int
+	battle    Battle
 
 	apply      chan Action
 	applySync  chan Action
@@ -351,6 +352,7 @@ func (sba StartBattleAction) Apply(w *World) {
 	w.turn = 0
 	w.waitlist = nil
 	w.battleWon = false
+	w.battle = battle
 
 	n := 0
 	for teamID, team := range battle.Teams {

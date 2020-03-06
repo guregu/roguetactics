@@ -269,7 +269,11 @@ func (m *Mob) Enqueue(action func(*Mob, *World)) {
 }
 
 func (mob *Mob) StatusLine() []Glyph {
-	status := fmt.Sprintf("[ ] %s (HP: %d, MP: %d, Speed: %d, CT: %d)", mob.Name(), mob.HP(), mob.MP(), mob.Speed(), mob.CT())
+	mobname := mob.Name()
+	if mob.class != "" {
+		mobname += " the " + string(mob.Class())
+	}
+	status := fmt.Sprintf("[ ] %s (HP: %d, MP: %d, Speed: %d, CT: %d)", mobname, mob.HP(), mob.MP(), mob.Speed(), mob.CT())
 	glyphs := GlyphsOf(status)
 	glyphs[1] = mob.Glyph()
 	return glyphs

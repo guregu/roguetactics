@@ -277,4 +277,8 @@ var PlayerNames = []string{
 	"Claud",
 	"Benor",
 	"Eris",
+	"Roscoe",
+	"Jebuiz",
+	"Saley",
+	"Willach",
 }

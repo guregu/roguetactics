@@ -71,7 +71,12 @@ func (gw *GameWindow) Input(in string) bool {
 			m.Move(mob, gw.startLoc.X, gw.startLoc.Y)
 			gw.moved = false
 		}
-
+	case "t", "i":
+		gw.Sesh.PushWindow(&TeamWindow{
+			World: gw.World,
+			Sesh:  gw.Sesh,
+			Team:  gw.World.battle.Teams[PlayerTeam],
+		})
 	case "W":
 		// TODO: DELETE
 		gw.World.apply <- ForceWinActionDEBUG{}
@@ -260,7 +265,7 @@ nextline:
 			helpBar += " c) Cast spell"
 		}
 	}
-	helpBar += " q) Query"
+	helpBar += " q) Query t) Team info"
 	if len(helpBar) > 0 {
 		helpBar += " "
 	}

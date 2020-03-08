@@ -1,9 +1,5 @@
 package main
 
-import (
-	"fmt"
-)
-
 type MoveWindow struct {
 	World    *World
 	Sesh     *Sesh
@@ -133,13 +129,10 @@ func (mw *MoveWindow) Click(x, y int) bool {
 	if mw.Readonly {
 		return false
 	}
-	fmt.Println("move click", x, y)
 	loc := mw.Char.Loc()
 	m := mw.World.Map(loc.Map)
 	path := m.FindPath(loc.X, loc.Y, x, y, mw.Char)
-	fmt.Println("path:", path)
 	if len(path) > mw.Range {
-		fmt.Println("too far:", len(path), mw.Range)
 		mw.Sesh.Bell()
 		return true
 	}

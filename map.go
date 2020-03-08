@@ -6,7 +6,6 @@ import (
 	"io"
 	// "os"
 	"encoding/json"
-	"log"
 	"path/filepath"
 	"strings"
 
@@ -66,7 +65,7 @@ func (m *Map) TileAtLoc(loc Loc) *Tile {
 func (m *Map) TileAt(x, y int) *Tile {
 	// TODO bounds check
 	if y >= len(m.Tiles) || x >= len(m.Tiles[y]) {
-		fmt.Println("invalid tile access", x, y)
+		// fmt.Println("invalid tile access", x, y)
 		return &Tile{
 			X:        x,
 			Y:        y,
@@ -433,7 +432,7 @@ func loadMap(name string) (*Map, error) {
 			return nil, err
 		}
 	}
-	log.Printf("Loading map: %s %+v", name, meta)
+	// log.Printf("Loading map: %s %+v", name, meta)
 
 	if meta.Height == 0 {
 		meta.Height = 20

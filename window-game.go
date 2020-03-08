@@ -193,7 +193,6 @@ func (gw *GameWindow) nextTurn() bool {
 		if m.Team() != gw.Team {
 			return true
 		}
-		fmt.Println("finish turn", gw.moved, gw.acted)
 		m.FinishTurn(gw.moved, gw.acted)
 	}
 	gw.World.pushBottom <- NextTurnState{}
@@ -294,7 +293,7 @@ func (gw *GameWindow) Click(x, y int) bool {
 		}
 	}
 
-	gw.Msgs = append(gw.Msgs, fmt.Sprintf("Clicked: (%d,%d)", x, y))
+	// gw.Msgs = append(gw.Msgs, fmt.Sprintf("Clicked: (%d,%d)", x, y))
 	return true
 }
 

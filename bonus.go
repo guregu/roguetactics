@@ -53,17 +53,17 @@ var genericBonuses = []func(level int) Bonus{
 var classBonuses = map[Class][]func(level int, unit *Mob) Bonus{
 	"Wizard": []func(level int, unit *Mob) Bonus{
 		learnSpellBonus("Wizard", true),
-		itemBonus("Wizard", true),
+		itemBonus("Wizard", true, true),
 	},
 	"Priest": []func(level int, unit *Mob) Bonus{
 		learnSpellBonus("Priest", true),
-		itemBonus("Priest", true),
+		itemBonus("Priest", true, true),
 	},
 	"Knight": []func(level int, unit *Mob) Bonus{
-		itemBonus("Knight", false),
+		itemBonus("Knight", false, false),
 	},
 	"Archer": []func(level int, unit *Mob) Bonus{
-		itemBonus("Archer", true),
+		itemBonus("Archer", true, false),
 	},
 }
 
@@ -140,10 +140,10 @@ var classSpells = map[Class][]spellProgression{
 	},
 }
 
-func itemBonus(class Class, magicUser bool) func(int, *Mob) Bonus {
+func itemBonus(class Class, magicUser, reroll bool) func(int, *Mob) Bonus {
 	spells := classItems[class]
 	return func(level int, unit *Mob) Bonus {
-		if magicUser && rand.Float64() < 0.5 {
+		if magicUser && reroll && rand.Float64() < 0.5 {
 			return learnSpellBonus(class, magicUser)(level, unit)
 		}
 		perm := rand.Perm(len(spells))

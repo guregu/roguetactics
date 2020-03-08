@@ -126,7 +126,7 @@ func (mw *AttackWindow) Click(x, y int) bool {
 	if mw.Readonly {
 		return true
 	}
-	fmt.Println("attack click", x, y)
+	// fmt.Println("attack click", x, y)
 	loc := mw.Char.Loc()
 	m := mw.World.Map(loc.Map)
 	wep := mw.Weapon
@@ -150,7 +150,6 @@ func (mw *AttackWindow) Click(x, y int) bool {
 		_, _, projpath = m.Raycast(loc, targetLoc, true)
 	} else {
 		target, blocked, path := m.Raycast(loc, targetLoc, false)
-		fmt.Println("TARGET", target, "BLOCKED", blocked, "PATH", path)
 		if (target == nil && !blocked) || (target != nil && !target.Attackable()) {
 			mw.Sesh.Bell()
 			return true

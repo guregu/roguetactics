@@ -151,7 +151,7 @@ func (sesh *Sesh) PushWindow(win Window) {
 
 func (sesh *Sesh) cleanup() {
 	sesh.world.apply <- PartAction{listener: sesh}
-	fmt.Println("disconnex")
+	// fmt.Println("disconnex")
 }
 
 func (sesh *Sesh) Run() {

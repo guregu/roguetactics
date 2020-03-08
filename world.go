@@ -78,13 +78,13 @@ func newWorld() *World {
 			panic(err)
 		}
 		w.maps[name] = m
-		log.Println("Loaded map:", name)
+		// log.Println("Loaded map:", name)
 	}
 	return w
 }
 
 func (w *World) reset() {
-	log.Println("Resetting world...")
+	// log.Println("Resetting world...")
 	w.state = nil
 	w.up = nil
 	w.gameOver = false
@@ -274,7 +274,6 @@ func (w *World) sortWaitlist() {
 }
 
 func (w *World) Broadcast(msg string) {
-	fmt.Println("broadcast:", msg)
 	for sesh := range w.seshes {
 		sesh.Send(msg)
 	}
@@ -334,7 +333,6 @@ type ListenAction struct {
 }
 
 func (la ListenAction) Apply(w *World) {
-	log.Println("listening", la.listener)
 	w.seshes[la.listener] = struct{}{}
 	la.listener.redraw()
 }
@@ -353,8 +351,6 @@ type StartBattleAction struct {
 }
 
 func (sba StartBattleAction) Apply(w *World) {
-	fmt.Println("START BATTLE", sba.Level)
-
 	if sba.Level > 0 {
 		w.score += 1000
 		w.score += max(0, (500-int(w.turn))*2)
@@ -421,7 +417,7 @@ func (w *World) Add(obj Object) {
 }
 
 func (aa AddAction) Apply(w *World) {
-	log.Println("create action", aa.Obj)
+	// log.Println("create action", aa.Obj)
 	w.Add(aa.Obj)
 }
 
@@ -433,10 +429,10 @@ type PlaceAction struct {
 }
 
 func (pa PlaceAction) Apply(w *World) {
-	log.Println("place action", pa)
+	// log.Println("place action", pa)
 	obj, ok := w.objects[pa.ID]
 	if !ok {
-		log.Println("Can't place ID", pa.ID, pa.Loc)
+		// log.Println("Can't place ID", pa.ID, pa.Loc)
 		return
 	}
 
@@ -460,7 +456,7 @@ func (pa PlaceAction) Apply(w *World) {
 type RemoveAction ID
 
 func (ra RemoveAction) Apply(w *World) {
-	log.Println("remove action", ra)
+	// log.Println("remove action", ra)
 	w.Delete(ID(ra))
 }
 
@@ -730,7 +726,6 @@ func (ai *EnemyAIState) Run(w *World) bool {
 			// otherloc := mob.Loc()
 			// newpath := m.FindPath(loc.X, loc.Y, otherloc.X, otherloc.Y, ai.self, mob)
 			newpath := m.FindPathNextTo(ai.self, mob)
-			fmt.Println("AI NEWPATH", newpath)
 			if len(newpath) == 0 {
 				continue
 			}
@@ -754,7 +749,6 @@ func (ai *EnemyAIState) Run(w *World) bool {
 			if len(path) > ai.self.MoveRange() {
 				path = path[:ai.self.MoveRange()]
 			}
-			fmt.Println("AI moving to", path)
 			ai.moved = true
 			w.push <- &MoveState{Obj: ai.self, Path: path}
 			return false
@@ -786,7 +780,6 @@ func (ai *EnemyAIState) Run(w *World) bool {
 		ai.acted = true
 	}
 
-	fmt.Println("AI done")
 	ai.self.FinishTurn(ai.moved, ai.acted)
 	w.pushBottom <- NextTurnState{}
 	return true

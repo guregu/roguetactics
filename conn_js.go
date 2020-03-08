@@ -87,3 +87,8 @@ func open(name string) (io.ReadCloser, error) {
 	}
 	return resp.Body, nil
 }
+
+func consoleWrite(str string) {
+	term := js.Global().Get("term")
+	term.Call("write", str)
+}

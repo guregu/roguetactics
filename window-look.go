@@ -18,7 +18,7 @@ type FarlookWindow struct {
 func (mw *FarlookWindow) Render(scr [][]Glyph) {
 	copyString(scr[len(scr)-1], "Query: use arrow keys or mouse to look around, ESC to exit.", true)
 
-	const arrow = " ↪︎"
+	const arrow = " └"
 	if mw.cursorX == -1 || mw.cursorY == -1 {
 		copyString(scr[len(scr)-2], arrow, true)
 		return
@@ -34,7 +34,7 @@ func (mw *FarlookWindow) Render(scr [][]Glyph) {
 			name = "wall"
 		}
 		status := GlyphsOf(fmt.Sprintf(arrow+"[ ] %s", name))
-		status[4] = tile.Glyph()
+		status[3] = tile.Glyph()
 		copyGlyphs(scr[len(scr)-2], status, true)
 	}
 }

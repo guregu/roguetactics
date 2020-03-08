@@ -72,13 +72,16 @@ func newWorld() *World {
 			mapnames[m] = struct{}{}
 		}
 	}
+	n := 1
+	consoleWrite("\n\r")
 	for name := range mapnames {
 		m, err := loadMap(name)
 		if err != nil {
 			panic(err)
 		}
 		w.maps[name] = m
-		// log.Println("Loaded map:", name)
+		consoleWrite(fmt.Sprintf("Downloaded map: %d/%d\n\r", n, len(mapnames)))
+		n++
 	}
 	return w
 }

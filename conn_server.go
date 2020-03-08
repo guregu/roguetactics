@@ -70,3 +70,7 @@ func runSesh(sesh *Sesh) {
 		}
 	}
 }
+
+func consoleWrite(str string) {
+	log.Println(str)
+}

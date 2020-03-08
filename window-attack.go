@@ -51,13 +51,13 @@ func (mw *AttackWindow) Render(scr [][]Glyph) {
 				dmgname = "healing"
 			}
 			dmginfo := fmt.Sprintf(" (%s: %s)", dmgname, wep.Damage)
-			status := append(append(GlyphsOf(" ↪︎"), target.StatusLine()...), GlyphsOf(dmginfo)...)
+			status := append(append(GlyphsOf(" └"), target.StatusLine()...), GlyphsOf(dmginfo)...)
 			copyGlyphs(scr[len(scr)-2], status, true)
 		} else {
-			copyString(scr[len(scr)-2], " ↪︎", true)
+			copyString(scr[len(scr)-2], " └", true)
 		}
 	} else {
-		copyString(scr[len(scr)-2], " ↪︎", true)
+		copyString(scr[len(scr)-2], " └", true)
 	}
 }
 

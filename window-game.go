@@ -78,7 +78,7 @@ func (gw *GameWindow) Input(in string) bool {
 			Team:  gw.World.battle.Teams[PlayerTeam],
 		})
 	case "W":
-		// gw.World.aspply <- ForceWinActionDEBUG{}
+		// gw.World.apply <- ForceWinActionDEBUG{}
 	}
 
 	return true

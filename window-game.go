@@ -310,7 +310,8 @@ type GameOverWindow struct {
 }
 
 func (gw *GameOverWindow) Render(scr [][]Glyph) {
-	lines := []string{"You were defeated!", "Game over.", "", "Press ENTER to start a new game."}
+	score := fmt.Sprintf("Score: %d", gw.World.score)
+	lines := []string{"You were defeated!", "Game over.", score, "", "Press ENTER to return to the title screen."}
 	drawCenteredBox(scr, lines, ColorDarkRed)
 }
 

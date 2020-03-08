@@ -112,7 +112,7 @@ var classBase = map[Class]Mob{
 		speed:  6,
 		move:   7,
 		maxHP:  15,
-		maxMP:  10,
+		maxMP:  5,
 		weapon: weaponBow,
 		armor:  armorLeather,
 		spells: []Weapon{

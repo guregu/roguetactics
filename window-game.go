@@ -233,7 +233,7 @@ nextline:
 	up := gw.World.Up()
 	if up != nil {
 		if mob, ok := up.(*Mob); ok {
-			copyGlyphs(scr[len(scr)-3], mob.StatusLine(), true)
+			copyGlyphs(scr[len(scr)-3], mob.StatusLine(false), true)
 		}
 	}
 

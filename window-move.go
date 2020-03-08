@@ -62,7 +62,7 @@ func (mw *MoveWindow) Render(scr [][]Glyph) {
 		scr[mw.cursorY][mw.cursorX].FG = glyph.FG
 		scr[mw.cursorY][mw.cursorX].BG = ColorBlack
 	}
-	copyString(scr[len(scr)-1], "Move: click, or arrow keys then . to move; ESC to cancel", true)
+	copyString(scr[len(scr)-1], "Move: click, or arrow keys then . or enter to move; ESC to cancel", true)
 }
 
 func (mw *MoveWindow) Cursor() (x, y int) {
@@ -85,7 +85,7 @@ func (mw *MoveWindow) Input(input string) bool {
 			}
 			mw.done = true
 			return true
-		case '.':
+		case '.', 13:
 			if mw.cursorX != -1 && mw.cursorY != -1 {
 				return mw.Click(mw.cursorX, mw.cursorY)
 			}

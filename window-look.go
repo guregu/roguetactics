@@ -26,7 +26,7 @@ func (mw *FarlookWindow) Render(scr [][]Glyph) {
 	m := mw.World.Map(mw.defaultLoc().Map)
 	tile := m.TileAt(mw.cursorX, mw.cursorY)
 	if target, ok := tile.Top().(*Mob); ok {
-		status := append(GlyphsOf(arrow), target.StatusLine()...)
+		status := append(GlyphsOf(arrow), target.StatusLine(true)...)
 		copyGlyphs(scr[len(scr)-2], status, true)
 	} else {
 		name := "floor"

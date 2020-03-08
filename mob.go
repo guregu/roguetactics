@@ -3,6 +3,7 @@ package main
 import (
 	// "log"
 	"fmt"
+	"math/rand"
 )
 
 type Loc struct {
@@ -67,6 +68,9 @@ type Mob struct {
 
 	moved bool
 	acted bool
+
+	tauntedBy *Mob
+	crippled  bool
 }
 
 func (m *Mob) Reset() {
@@ -75,6 +79,7 @@ func (m *Mob) Reset() {
 	m.ct = 0
 	m.moved = false
 	m.acted = false
+	m.tauntedBy = nil
 }
 
 func (m *Mob) Create(w *World) {
@@ -115,6 +120,10 @@ func (m *Mob) Glyph() Glyph {
 	glyph := m.glyph
 	if m.HP() <= m.MaxHP()/4 {
 		glyph.BG = ColorDarkRed
+	} else if m.crippled {
+		glyph.BG = 242
+	} else if m.tauntedBy != nil {
+		glyph.BG = 166
 	}
 	return glyph
 }
@@ -126,6 +135,16 @@ func (m *Mob) CT() int {
 func (m *Mob) TakeTurn(w *World) {
 	m.moved = false
 	m.acted = false
+
+	if m.tauntedBy != nil && m.tauntedBy.Dead() {
+		m.tauntedBy = nil
+	}
+	if m.crippled && rand.Intn(6) == 0 {
+		m.crippled = false
+		w.Broadcast(m.Name() + " can move again.")
+	}
+
+	m.AddMP(m.Armor().MPRecovery + 1)
 
 	// TODO: friendly AI
 	if m.Team() != 0 && !w.gameOver {
@@ -171,14 +190,24 @@ func (m *Mob) Move(loc Loc) {
 }
 
 func (m *Mob) MoveRange() int {
+	if m.crippled {
+		return 0
+	}
 	return m.move
 }
 
-func (m *Mob) CanAttack(other *Mob) bool {
+func (m *Mob) CanAttack(world *World, other *Mob, weapon Weapon) bool {
 	myloc := m.Loc()
+	return m.CanAttackFrom(world, myloc, other, weapon)
+}
+
+func (m *Mob) CanAttackFrom(world *World, loc Loc, other *Mob, weapon Weapon) bool {
+	myloc := loc
 	otherloc := other.Loc()
-	if abs(myloc.X-otherloc.X)+abs(myloc.Y-otherloc.Y) <= m.Weapon().Range {
-		return true
+	mymap := world.Map(myloc.Map)
+	if abs(myloc.X-otherloc.X)+abs(myloc.Y-otherloc.Y) <= weapon.Range {
+		_, blocked, _ := mymap.Raycast(myloc, otherloc, weapon.Magic)
+		return !blocked
 	}
 	return false
 }

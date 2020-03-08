@@ -52,6 +52,11 @@ func (m *Map) Reset() {
 	for _, obj := range m.Objects {
 		m.Remove(obj)
 	}
+	for y := 0; y < len(m.Tiles); y++ {
+		for x := 0; x < len(m.Tiles[y]); x++ {
+			m.Tiles[y][x].RemoveAll()
+		}
+	}
 }
 
 func (m *Map) TileAtLoc(loc Loc) *Tile {
@@ -60,6 +65,17 @@ func (m *Map) TileAtLoc(loc Loc) *Tile {
 
 func (m *Map) TileAt(x, y int) *Tile {
 	// TODO bounds check
+	if y >= len(m.Tiles) || x >= len(m.Tiles[y]) {
+		fmt.Println("invalid tile access", x, y)
+		return &Tile{
+			X:        x,
+			Y:        y,
+			Map:      m,
+			Collides: true,
+			Ground:   GlyphOf(' '),
+			Objects:  make(map[ID]Object),
+		}
+	}
 	return m.Tiles[y][x]
 }
 
@@ -294,6 +310,10 @@ func (t *Tile) Remove(obj Object) {
 	delete(t.Objects, obj.ID())
 }
 
+func (t *Tile) RemoveAll() {
+	t.Objects = make(map[ID]Object)
+}
+
 func (t *Tile) Top() Object {
 	z := -1
 	var obj Object
@@ -434,6 +454,9 @@ func loadMap(name string) (*Map, error) {
 		var tline []*Tile
 		if len(line) > 0 {
 			for _, r := range string(line) {
+				// if x > meta.Width {
+				// 	continue
+				// }
 				glyph := GlyphOf(r)
 				collides := false
 				for glyphs, info := range meta.Glyphs {
@@ -464,6 +487,9 @@ func loadMap(name string) (*Map, error) {
 			m.Tiles = append(m.Tiles, tline)
 			y++
 			x = 0
+			// if y > meta.Height {
+			// 	break
+			// }
 		}
 		if err == io.EOF {
 			break

@@ -24,11 +24,11 @@ func (gw *GameWindow) close() {
 }
 
 func (gw *GameWindow) Input(in string) bool {
-	if in[0] == 13 {
-		// enter key
-		gw.Sesh.PushWindow(&ChatWindow{prompt: "Chat: "})
-		return true
-	}
+	// if in[0] == 13 {
+	// 	// enter key
+	// 	gw.Sesh.PushWindow(&ChatWindow{prompt: "Chat: "})
+	// 	return true
+	// }
 	switch in {
 	case "Q":
 		gw.Sesh.ssh.Exit(0)
@@ -165,15 +165,15 @@ func (gw *GameWindow) showCast() bool {
 			Sesh:  gw.Sesh,
 			Char:  m,
 			callback: func(i int) {
-				// TODO: check i validity & MP cost
+
 				gw.Sesh.PushWindow(&AttackWindow{
 					World:   gw.World,
 					Sesh:    gw.Sesh,
 					Char:    m,
 					Weapon:  spells[i],
 					Self:    true,
-					cursorX: -1,
-					cursorY: -1,
+					cursorX: m.Loc().X,
+					cursorY: m.Loc().Y,
 					callback: func(acted bool) {
 						if acted {
 							gw.acted = true
@@ -250,26 +250,26 @@ nextline:
 		return
 	}
 
-	helpBar := ""
-	if !gw.moved {
-		helpBar += "m) Move"
-	} else if !gw.acted {
-		helpBar += "r) Reset move"
+	var helpBar string
+	pushHelp := func(str string) {
+		if len(helpBar) > 0 {
+			helpBar += " "
+		}
+		helpBar += str
 	}
-	if len(helpBar) > 0 {
-		helpBar += " "
+	if !gw.moved {
+		pushHelp("m) Move")
+	} else if !gw.acted {
+		pushHelp("r) Reset move")
 	}
 	if !gw.acted {
-		helpBar += "a) Attack"
+		pushHelp("a) Attack")
 		if mob, ok := up.(*Mob); ok && len(mob.Spells()) > 0 {
-			helpBar += " c) Cast spell"
+			pushHelp("c) Cast spell")
 		}
 	}
-	helpBar += " q) Query t) Team info"
-	if len(helpBar) > 0 {
-		helpBar += " "
-	}
-	helpBar += "n) Next turn"
+	pushHelp("q) Query t) Team info")
+	pushHelp("n) Next turn")
 	copyString(scr[len(scr)-1], helpBar, true)
 }
 

@@ -111,7 +111,7 @@ func (gw *TeamWindow) Render(scr [][]Glyph) {
 			fmt.Fprint(w, "\t")
 		}
 		if unit.Armor().Name != "" {
-			fmt.Fprintf(w, "%s (%d)", unit.Armor().Name, unit.Armor().Defense)
+			fmt.Fprint(w, unit.Armor().String())
 		}
 	}
 	fmt.Fprintln(w)

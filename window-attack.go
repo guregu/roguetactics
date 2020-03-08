@@ -334,7 +334,7 @@ func findTargets(loc Loc, m *Map, selfOK bool, size int, hitbox HitboxType) (tar
 
 			aoe = append(aoe, Loc{Map: loc.Map, X: x, Y: y})
 			for _, obj := range m.TileAt(x, y).Objects {
-				if mob, ok := obj.(*Mob); ok {
+				if mob, ok := obj.(*Mob); ok && !mob.Dead() {
 					targets = append(targets, mob)
 				}
 			}

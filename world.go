@@ -65,11 +65,20 @@ func newWorld() *World {
 		push:       make(chan StateAction, 32),
 		pushBottom: make(chan StateAction, 32),
 	}
-	testMap, err := loadMap("dojo")
-	if err != nil {
-		panic(err)
+	mapnames := map[string]struct{}{}
+	for _, maps := range mapsByLevel {
+		for _, m := range maps {
+			mapnames[m] = struct{}{}
+		}
 	}
-	w.maps["dojo"] = testMap
+	for name := range mapnames {
+		m, err := loadMap(name)
+		if err != nil {
+			panic(err)
+		}
+		w.maps[name] = m
+		log.Println("Loaded map:", name)
+	}
 	return w
 }
 
@@ -462,12 +471,17 @@ func (aa AttackAction) Apply(w *World) {
 	if weapon.DamageType == DamageHealing {
 		dmg = -dmg
 	}
-	dmg = aa.Target.Damage(dmg, weapon)
-	msg := fmt.Sprintf("%s attacked %s with %s for %d damage!", aa.Source.Name(), aa.Target.Name(), weapon.Name, dmg)
-	if dmg < 0 {
-		msg = fmt.Sprintf("%s heals %s with %s for %d HP!", aa.Source.Name(), aa.Target.Name(), weapon.Name, -dmg)
+	if weapon.DamageType != DamageNone {
+		dmg = aa.Target.Damage(dmg, weapon)
+		msg := fmt.Sprintf("%s attacked %s with %s for %d damage!", aa.Source.Name(), aa.Target.Name(), weapon.Name, dmg)
+		if dmg < 0 {
+			msg = fmt.Sprintf("%s heals %s with %s for %d HP!", aa.Source.Name(), aa.Target.Name(), weapon.Name, -dmg)
+		}
+		w.Broadcast(msg)
 	}
-	w.Broadcast(msg)
+	if weapon.OnHit != nil {
+		weapon.OnHit(w, aa.Source, aa.Target)
+	}
 	if aa.Target.Dead() {
 		w.Broadcast(fmt.Sprintf("%s died.", aa.Target.Name()))
 	}
@@ -698,9 +712,13 @@ func (ai *EnemyAIState) Run(w *World) bool {
 			if mob.Dead() {
 				continue
 			}
+			if ai.self.tauntedBy != nil && !ai.self.tauntedBy.Dead() && mob.ID() != ai.self.tauntedBy.ID() {
+				continue
+			}
 
-			if ai.self.CanAttack(mob) {
+			if ai.self.CanAttack(w, mob, ai.self.Weapon()) {
 				ai.target = mob
+				// TODO: maybe run away when too close
 				return false
 			}
 
@@ -710,6 +728,13 @@ func (ai *EnemyAIState) Run(w *World) bool {
 			fmt.Println("AI NEWPATH", newpath)
 			if len(newpath) == 0 {
 				continue
+			}
+			for i := 0; i < len(newpath)-1; i++ {
+				if ai.self.CanAttackFrom(w, newpath[i], mob, ai.self.Weapon()) {
+					newpath = newpath[:i+1]
+					fmt.Println("AI shorter path:", newpath)
+					break
+				}
 			}
 			if path == nil || len(newpath) < len(path) {
 				path = newpath
@@ -734,18 +759,31 @@ func (ai *EnemyAIState) Run(w *World) bool {
 		return true
 	}
 
-	if ai.self.CanAttack(ai.target) {
-		w.apply <- AttackAction{
-			Source: ai.self,
-			Weapon: ai.self.Weapon(),
-			Target: ai.target,
+	if ai.self.CanAttack(w, ai.target, ai.self.Weapon()) {
+		wep := ai.self.Weapon()
+		var hitlocs, projpath []Loc
+		var targets []*Mob
+		if wep.Magic {
+			targets, hitlocs = findTargets(ai.target.Loc(), m, true, wep.HitboxSize, wep.Hitbox)
+			_, _, projpath = m.Raycast(loc, ai.target.Loc(), true)
+		} else {
+			t, _, path := m.Raycast(ai.self.Loc(), ai.target.Loc(), false)
+			targets = []*Mob{t}
+			projpath = path
+		}
+		w.push <- &AttackState{
+			Char:     ai.self,
+			Weapon:   wep,
+			HitLocs:  hitlocs,
+			ProjPath: projpath,
+			Targets:  targets,
 		}
 		ai.acted = true
 	}
 
 	fmt.Println("AI done")
 	ai.self.FinishTurn(ai.moved, ai.acted)
-	w.apply <- NextTurnAction{}
+	w.pushBottom <- NextTurnState{}
 	return true
 }
 

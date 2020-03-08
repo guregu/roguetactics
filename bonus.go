@@ -52,14 +52,22 @@ var genericBonuses = []func(level int) Bonus{
 
 var classBonuses = map[Class][]func(level int, unit *Mob) Bonus{
 	"Wizard": []func(level int, unit *Mob) Bonus{
-		learnSpellBonus("Wizard"),
+		learnSpellBonus("Wizard", true),
+		itemBonus("Wizard", true),
 	},
 	"Priest": []func(level int, unit *Mob) Bonus{
-		learnSpellBonus("Priest"),
+		learnSpellBonus("Priest", true),
+		itemBonus("Priest", true),
+	},
+	"Knight": []func(level int, unit *Mob) Bonus{
+		itemBonus("Knight", false),
+	},
+	"Archer": []func(level int, unit *Mob) Bonus{
+		itemBonus("Archer", true),
 	},
 }
 
-func learnSpellBonus(class Class) func(int, *Mob) Bonus {
+func learnSpellBonus(class Class, magicUser bool) func(int, *Mob) Bonus {
 	spells := classSpells[class]
 	return func(level int, unit *Mob) Bonus {
 		perm := rand.Perm(len(spells))
@@ -82,11 +90,20 @@ func learnSpellBonus(class Class) func(int, *Mob) Bonus {
 			}
 		}
 		mp := (level + 1) * 5
-		return Bonus{
-			Name: fmt.Sprintf("+%d MP", mp),
-			Apply: func(mob *Mob) {
-				mob.maxMP += mp
-			},
+		if magicUser {
+			return Bonus{
+				Name: fmt.Sprintf("+%d MP", mp),
+				Apply: func(mob *Mob) {
+					mob.maxMP += mp
+				},
+			}
+		} else {
+			return Bonus{
+				Name: fmt.Sprintf("+%d HP", mp),
+				Apply: func(mob *Mob) {
+					mob.maxHP += mp
+				},
+			}
 		}
 	}
 }
@@ -101,6 +118,10 @@ var classSpells = map[Class][]spellProgression{
 		{
 			spell: spellMeteor,
 		},
+		{
+			spell: spellBolt,
+			level: 2,
+		},
 	},
 	"Priest": []spellProgression{
 		{
@@ -108,6 +129,135 @@ var classSpells = map[Class][]spellProgression{
 		},
 		{
 			spell: spellGloria,
+		},
+		{
+			spell: spellHeal2,
+		},
+	},
+}
+
+func itemBonus(class Class, magicUser bool) func(int, *Mob) Bonus {
+	spells := classItems[class]
+	return func(level int, unit *Mob) Bonus {
+		if magicUser && rand.Float64() < 0.5 {
+			return learnSpellBonus(class, magicUser)(level, unit)
+		}
+		perm := rand.Perm(len(spells))
+		for _, i := range perm {
+			spell := spells[i]
+			if spell.level > level {
+				continue
+			}
+			if spell.weapon != nil && (unit.Weapon().Value > spell.weapon.Value || spell.weapon.Name == unit.Weapon().Name) {
+				continue
+			}
+			if spell.armor != nil && (unit.Armor().Value > spell.armor.Value || spell.armor.Name == unit.Armor().Name) {
+				continue
+			}
+
+			if spell.weapon != nil {
+				return Bonus{
+					Name: fmt.Sprintf("%s (%s)", spell.weapon.Name, spell.weapon.Damage),
+					Apply: func(mob *Mob) {
+						mob.weapon = *spell.weapon
+					},
+				}
+			}
+			if spell.armor != nil {
+				return Bonus{
+					Name: spell.armor.String(),
+					Apply: func(mob *Mob) {
+						mob.armor = *spell.armor
+					},
+				}
+			}
+		}
+		if magicUser {
+			return learnSpellBonus(class, magicUser)(level, unit)
+		}
+		mp := (level + 1) * 5
+		if magicUser {
+			return Bonus{
+				Name: fmt.Sprintf("+%d MP", mp),
+				Apply: func(mob *Mob) {
+					mob.maxMP += mp
+				},
+			}
+		} else {
+			return Bonus{
+				Name: fmt.Sprintf("+%d HP", mp),
+				Apply: func(mob *Mob) {
+					mob.maxHP += mp
+				},
+			}
+		}
+	}
+}
+
+type itemProgression struct {
+	weapon *Weapon
+	armor  *Armor
+	level  int
+}
+
+var classItems = map[Class][]itemProgression{
+	"Knight": []itemProgression{
+		{
+			armor: &armorChainmail,
+		},
+		{
+			weapon: &weaponSword,
+		},
+		{
+			armor: &armorPlate,
+			level: 2,
+		},
+		{
+			weapon: &weaponGreatsword,
+			level:  2,
+		},
+	},
+	"Archer": []itemProgression{
+		{
+			weapon: &weaponLongbow,
+		},
+		{
+			armor: &armorLeather2,
+		},
+		{
+			armor: &armorChainmail,
+			level: 2,
+		},
+		{
+			weapon: &weaponCrossbow,
+			level:  2,
+		},
+	},
+	"Priest": []itemProgression{
+		{
+			weapon: &weaponHealingStaff,
+		},
+		{
+			weapon: &weaponBeatstick,
+		},
+		{
+			armor: &armorFineRobe,
+		},
+		{
+			armor: &armorHolyRobe,
+			level: 2,
+		},
+	},
+	"Wizard": []itemProgression{
+		{
+			armor: &armorFineRobe,
+		},
+		{
+			weapon: &weaponBeatstick,
+		},
+		{
+			armor: &armorWizardHat,
+			level: 2,
 		},
 	},
 }

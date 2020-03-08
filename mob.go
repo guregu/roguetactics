@@ -139,7 +139,7 @@ func (m *Mob) TakeTurn(w *World) {
 	if m.tauntedBy != nil && m.tauntedBy.Dead() {
 		m.tauntedBy = nil
 	}
-	if m.crippled && rand.Intn(6) == 0 {
+	if m.crippled && rand.Intn(4) == 0 {
 		m.crippled = false
 		w.Broadcast(m.Name() + " can move again.")
 	}

@@ -7,7 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
-	"strings"
+	// "strings"
 	"syscall"
 
 	"github.com/gliderlabs/ssh"
@@ -66,7 +66,7 @@ func runSesh(sesh *Sesh) {
 		}
 		if n > 0 {
 			sesh.do(string(buf[:n]))
-			fmt.Println("GOT:", buf[:n], ">>>", strings.ReplaceAll(string(buf[:n]), "\033", "ESC"))
+			// fmt.Println("GOT:", buf[:n], ">>>", strings.ReplaceAll(string(buf[:n]), "\033", "ESC"))
 		}
 	}
 }

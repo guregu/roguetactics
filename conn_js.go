@@ -4,7 +4,7 @@ package main
 
 import (
 	"io"
-	"log"
+	// "log"
 	"net/http"
 	// "strings"
 	"syscall/js"
@@ -30,14 +30,14 @@ func runSesh(sesh *Sesh) {
 	cb := js.FuncOf(func(_ js.Value, args []js.Value) interface{} {
 		evt := args[0]
 		key := evt.Get("key").String()
-		log.Println("got key", key)
+		// log.Println("got key", key)
 		sesh.do(key)
 		return nil
 	})
 	term.Call("onKey", cb)
 	mouse := js.FuncOf(func(_ js.Value, args []js.Value) interface{} {
 		evt := args[0].String()
-		log.Println("got mouse", evt)
+		// log.Println("got mouse", evt)
 		sesh.do(evt)
 		return nil
 	})

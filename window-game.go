@@ -78,8 +78,7 @@ func (gw *GameWindow) Input(in string) bool {
 			Team:  gw.World.battle.Teams[PlayerTeam],
 		})
 	case "W":
-		// TODO: DELETE
-		gw.World.apply <- ForceWinActionDEBUG{}
+		// gw.World.aspply <- ForceWinActionDEBUG{}
 	}
 
 	return true

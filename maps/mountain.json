@@ -3,13 +3,12 @@
   "Width": 80,
   "Height": 20,
   "Glyphs": {
-    ".": {
+    ".#": {
       "FG": 237
     },
-    "7≈ ": {
+    "▲≈ ": {
       "Collide": true
-    },
-    "7": { "BG": 237 }
+    }
   },
   "Teams": 2,
   "SpawnPoints": [

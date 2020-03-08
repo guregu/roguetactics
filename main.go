@@ -108,7 +108,7 @@ func (sesh *Sesh) refresh() {
 		}
 		return
 	}
-	fmt.Println("Render: ", strings.Replace(render, "\033", "ESC", -1))
+	// fmt.Println("Render: ", strings.Replace(render, "\033", "ESC", -1))
 	io.WriteString(sesh.ssh, render)
 	sesh.setCursor(sesh.ui[len(sesh.ui)-1].Cursor())
 }

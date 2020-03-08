@@ -112,7 +112,7 @@ var classBase = map[Class]Mob{
 		speed:  6,
 		move:   7,
 		maxHP:  15,
-		maxMP:  5,
+		maxMP:  10,
 		weapon: weaponBow,
 		armor:  armorLeather,
 		spells: []Weapon{
@@ -170,10 +170,10 @@ var mapsByLevel = [][]string{
 		"forest",
 	},
 	{
-		"throne",
+		"mountain",
 	},
 	{
-		"mountain",
+		"throne",
 	},
 }
 
@@ -342,6 +342,32 @@ var monstersByLevel = [][]Mob{
 	},
 	{
 		Mob{
+			name:   "yeti",
+			glyph:  GlyphOf('Y'),
+			speed:  6,
+			move:   4,
+			maxHP:  25,
+			weapon: weaponYetiFist,
+		},
+		Mob{
+			name:   "polar bear",
+			glyph:  GlyphOf('P'),
+			speed:  3,
+			move:   3,
+			maxHP:  35,
+			weapon: weaponSwipe,
+		},
+		Mob{
+			name:   "snow fox",
+			glyph:  GlyphOf('S'),
+			speed:  7,
+			move:   7,
+			maxHP:  15,
+			weapon: weaponSnowFoxBite,
+		},
+	},
+	{
+		Mob{
 			name:   "golem",
 			glyph:  GlyphOf('&'),
 			speed:  3,
@@ -365,32 +391,6 @@ var monstersByLevel = [][]Mob{
 			maxHP:  30,
 			maxMP:  100,
 			weapon: spellSmite,
-		},
-	},
-	{
-		Mob{
-			name:   "yeti",
-			glyph:  GlyphOf('☃'),
-			speed:  6,
-			move:   4,
-			maxHP:  25,
-			weapon: weaponYetiFist,
-		},
-		Mob{
-			name:   "polar bear",
-			glyph:  GlyphOf('P'),
-			speed:  3,
-			move:   3,
-			maxHP:  35,
-			weapon: weaponSwipe,
-		},
-		Mob{
-			name:   "snow fox",
-			glyph:  GlyphOf('S'),
-			speed:  7,
-			move:   7,
-			maxHP:  15,
-			weapon: weaponSnowFoxBite,
 		},
 	},
 }

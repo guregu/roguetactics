@@ -10,6 +10,61 @@
 <body>
 	<main>
 		<div id="terminal"></div>
+		<div>
+			<h3>How to Play</h3>
+			This game is a "roguelite" take on tactics RPGs such as Final Fantasy Tactics.<br>
+			You start with a randomly generated team of 4 adventurers.<br>
+			Be careful, once a unit dies it's dead forever.<br>
+			Can you make it through the gauntlet of battles and win the game?
+			<h4>Controls</h4>
+			The bottom of the screen will tell you what controls you can use.<br>
+			Each unit can both move and attack once per turn.<br>
+			Doing nothing, or only moving or attacking will make your next turn come faster.
+			<ul>
+				<li>Press <b>m</b> to move, then use the arrow keys or click.</li>
+				<li>Press <b>r</b> to undo movement if you haven't attacked yet.</li>
+				<li>Press <b>a</b> to attack, then use the arrow keys or click.</li>
+				<li>Press <b>c</b> to cast spells if you have any.</li>
+				<li>Press <b>q</b> or <b>;</b> to 'query' aka farlook, to get info on units, arrow keys or mouse to look around.</li>
+				<li>Press <b>t</b> or <b>tab</b> to get a summary of your team, press tab to look at the enemy team. ESC to exit.</li>
+				<li>Press <b>n</b> to end your turn.</li>
+			</ul>
+			<h3>Spoilers</h3>
+			Here is some info about spells and items, don't read it if you want to figure it out yourself.
+			<ul>
+				<li>Warrior
+					<ul>
+						<li><b>taunt</b>: forces an enemy to attack you.</li>
+					</ul>
+				</li>
+			</ul>
+			<ul>
+				<li>Archer
+					<ul>
+						<li><b>aim: legs</b>: temporarily prevents that enemy from moving (but not acting).</li>
+					</ul>
+				</li>
+			</ul>
+			<ul>
+				<li>Wizard
+					<ul>
+						<li><b>fireball</b>: damages targets in a cross shape.</li>
+						<li><b>meteor</b>: damages targets in a large radius.</li>
+						<li><b>bolt</b>: high single target damage.</li>
+					</ul>
+				</li>
+			</ul>
+			<ul>
+				<li>Priest
+					<ul>
+						<li><b>heal</b>: heals targets in a cross shape.</li>
+						<li><b>gloria</b>: heals targets in a large radius.</li>
+						<li><b>smite</b>: single target damage.</li>
+						<li><b>healing rod</b>: weapon that heals instead of damaging.</li>
+					</ul>
+				</li>
+			</ul>
+		</div>
     	<script>
 	        	var term = new Terminal({rows: 27, cols: 80});
 	        	term.open(document.getElementById('terminal'));
@@ -44,15 +99,7 @@
 				}
 				xhr.send(null);
 
-
-	        	// fetch('main.wasm').then(response => 
-	        	// 	response.arrayBuffer()
-	        	// ).then(bytes => 
-	        	//   WebAssembly.instantiate(bytes, go.importObject)
-	        	// ).then(obj => {
-	        	//     go.run(obj.instance);
-	        	//     term.focus();
-	        	// });
+				term.focus();
     	</script>
 	</main>
 </body>

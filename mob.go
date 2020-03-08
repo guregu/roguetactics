@@ -121,7 +121,7 @@ func (m *Mob) Glyph() Glyph {
 	if m.HP() <= m.MaxHP()/4 {
 		glyph.BG = ColorDarkRed
 	} else if m.crippled {
-		glyph.BG = 242
+		glyph.BG = 237
 	} else if m.tauntedBy != nil {
 		glyph.BG = 166
 	}

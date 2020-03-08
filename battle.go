@@ -158,13 +158,19 @@ var mapsByLevel = [][]string{
 		"oneroom",
 	},
 	{
+		"split",
+	},
+	{
+		"dojo",
+	},
+	{
 		"chambers",
 	},
 	{
-		"dojo",
+		"forest",
 	},
 	{
-		"dojo",
+		"throne",
 	},
 }
 
@@ -255,12 +261,12 @@ var monstersByLevel = [][]Mob{
 			weapon: weaponSword,
 		},
 		Mob{
-			name:   "bear",
-			glyph:  GlyphOf('B'),
+			name:   "samurai",
+			glyph:  GlyphOf('@'),
 			speed:  4,
 			move:   4,
 			maxHP:  20,
-			weapon: weaponSwipe,
+			weapon: weaponSpear,
 		},
 		Mob{
 			name:   "fox",
@@ -295,6 +301,67 @@ var monstersByLevel = [][]Mob{
 			move:   4,
 			maxHP:  20,
 			weapon: weaponSword,
+		},
+		Mob{
+			name:   "horse",
+			glyph:  GlyphOf('H'),
+			speed:  5,
+			move:   8,
+			maxHP:  12,
+			weapon: weaponKick,
+		},
+	},
+	{
+		Mob{
+			name:   "bear",
+			glyph:  GlyphOf('B'),
+			speed:  4,
+			move:   4,
+			maxHP:  26,
+			weapon: weaponSwipe,
+		},
+		Mob{
+			name:   "hunter",
+			glyph:  GlyphOf('@'),
+			speed:  5,
+			move:   6,
+			maxHP:  20,
+			weapon: weaponLongbow,
+		},
+		Mob{
+			name:   "foxhound",
+			glyph:  GlyphOf('d'),
+			speed:  8,
+			move:   6,
+			maxHP:  12,
+			weapon: weaponBite,
+		},
+	},
+	{
+		Mob{
+			name:   "golem",
+			glyph:  GlyphOf('&'),
+			speed:  3,
+			move:   4,
+			maxHP:  40,
+			weapon: weaponCrush,
+		},
+		Mob{
+			name:   "dragon",
+			glyph:  GlyphOf('D'),
+			speed:  5,
+			move:   5,
+			maxHP:  32,
+			weapon: weaponFirebreathing,
+		},
+		Mob{
+			name:   "archon",
+			glyph:  GlyphOf('A'),
+			speed:  4,
+			move:   6,
+			maxHP:  30,
+			maxMP:  100,
+			weapon: spellSmite,
 		},
 	},
 }

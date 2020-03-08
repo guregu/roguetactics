@@ -11,14 +11,24 @@ type TeamWindow struct {
 	World *World
 	Sesh  *Sesh
 	Team  Team
+	Win   bool
 	done  bool
 }
 
 func (gw *TeamWindow) Render(scr [][]Glyph) {
-	copyString(scr[len(scr)-1], "Team summary: press TAB to switch teams, or ESC to exit.", true)
+	if gw.Win {
+		copyString(scr[len(scr)-3], "", true)
+		copyString(scr[len(scr)-2], "Congratulations and thank you for playing!", true)
+		copyString(scr[len(scr)-1], "Press ENTER to return to the title screen.", true)
+	} else {
+		copyString(scr[len(scr)-1], "Team summary: press TAB to switch teams, or ESC to exit.", true)
+	}
 
 	var buf bytes.Buffer
 	w := tabwriter.NewWriter(&buf, 8, 4, 1, ' ', 0)
+	if gw.Win {
+		fmt.Fprintln(w, "You win! Final score:", gw.World.score)
+	}
 	spellCount := 0
 	for i := 0; i < len(gw.Team.Units); i++ {
 		unit := gw.Team.Units[i]
@@ -146,6 +156,15 @@ func (gw *TeamWindow) Cursor() (x, y int) {
 }
 
 func (gw *TeamWindow) Input(input string) bool {
+	if gw.Win {
+		if input[0] == 13 {
+			gw.Sesh.PushWindow(&TitleWindow{World: gw.World, Sesh: gw.Sesh})
+			gw.World.reset()
+			gw.done = true
+		}
+		return true
+	}
+
 	if len(input) == 1 {
 		switch input[0] {
 		case 27, 13: // ESC

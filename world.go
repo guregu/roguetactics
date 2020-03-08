@@ -35,6 +35,7 @@ type World struct {
 	battleWon bool
 	level     int
 	battle    Battle
+	score     int
 
 	apply      chan Action
 	applySync  chan Action
@@ -87,6 +88,7 @@ func (w *World) reset() {
 	w.state = nil
 	w.up = nil
 	w.gameOver = false
+	w.score = 0
 	w.objects = make(map[ID]Object)
 	w.player = generatePlayerTeam()
 	w.current = nil
@@ -354,10 +356,13 @@ func (sba StartBattleAction) Apply(w *World) {
 	fmt.Println("START BATTLE", sba.Level)
 
 	if sba.Level > 0 {
+		w.score += 1000
+		w.score += max(0, (500-int(w.turn))*2)
 		for i := 0; i < len(w.player.Units); i++ {
 			if !w.player.Units[i].Dead() {
 				continue
 			}
+			w.score -= 500
 			fmt.Println("Dead:", w.player.Units[i].Name())
 			if i < len(w.player.Units)-1 {
 				copy(w.player.Units[i:], w.player.Units[i+1:])

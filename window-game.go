@@ -347,7 +347,12 @@ type VictoryWindow struct {
 }
 
 func (gw *VictoryWindow) Render(scr [][]Glyph) {
-	lines := []string{"Victory!", "You defeated the enemies and descend deeper...", "", "Press ENTER to continue."}
+	var lines []string
+	if gw.World.level+1 >= len(mapsByLevel) {
+		lines = []string{"Victory!", "You seize the golden throne!", "The dungeon is now yours...", "", "Press ENTER to continue."}
+	} else {
+		lines = []string{"Victory!", "You defeated the enemies and descend deeper...", "", "Press ENTER to continue."}
+	}
 	drawCenteredBox(scr, lines, 17)
 }
 
@@ -403,8 +408,8 @@ type GameWonWindow struct {
 }
 
 func (gw *GameWonWindow) Render(scr [][]Glyph) {
-	// TODO scores
-	lines := []string{"YOU'RE WINNER!", "Congratulations, you won the game.", "", "Press ENTER to return to the title screen."}
+	score := fmt.Sprintf("Score: %d", gw.World.score)
+	lines := []string{"You win!", "Congratulations, you won the game.", score, "", "Press ENTER to see your final stats."}
 	drawCenteredBox(scr, lines, 17)
 }
 
@@ -419,8 +424,7 @@ func (gw *GameWonWindow) Input(input string) bool {
 
 	switch input[0] {
 	case 13: //ENTER
-		gw.Sesh.PushWindow(&TitleWindow{World: gw.World, Sesh: gw.Sesh})
-		gw.World.reset()
+		gw.Sesh.PushWindow(&TeamWindow{World: gw.World, Sesh: gw.Sesh, Win: true, Team: gw.World.player})
 		gw.done = true
 	}
 	return true

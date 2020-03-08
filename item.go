@@ -118,10 +118,33 @@ var weaponShank = Weapon{
 	Range:  1,
 }
 
+var weaponFirebreathing = Weapon{
+	Name:       "firebreathing",
+	Damage:     "2d8+4",
+	Range:      3,
+	projectile: projectileFunc(Glyph{Rune: '#', SGR: SGR{FG: ColorBrightRed}}),
+}
+
 var weaponPick = Weapon{
 	Name:   "mattock",
 	Damage: "2d6+3",
 	Range:  1,
+}
+
+var weaponSpear = Weapon{
+	Name:   "spear",
+	Damage: "2d8",
+	Range:  2,
+}
+
+var weaponKick = Weapon{
+	Name:   "kick",
+	Damage: "3d6",
+}
+
+var weaponCrush = Weapon{
+	Name:   "kick",
+	Damage: "2d10",
 }
 
 var weaponBow = Weapon{
@@ -164,7 +187,7 @@ var weaponBeatstick = Weapon{
 
 var weaponHealingStaff = Weapon{
 	Name:       "healing rod",
-	Damage:     "3d4",
+	Damage:     "3d8",
 	DamageType: DamageHealing,
 	Range:      2,
 }
@@ -182,6 +205,19 @@ var spellFireball = Weapon{
 	projectile: projectileFunc(Glyph{Rune: 'o', SGR: SGR{FG: ColorRed}}),
 }
 
+var spellFireball2 = Weapon{
+	Name:       "fireball ii",
+	Damage:     "6d4",
+	Range:      6,
+	Targeting:  TargetingFree,
+	Magic:      true,
+	Hitbox:     HitboxCross,
+	HitboxSize: 1,
+	HitGlyph:   &Glyph{Rune: 'X', SGR: SGR{BG: ColorBrightYellow, FG: ColorRed}},
+	MPCost:     5,
+	projectile: projectileFunc(Glyph{Rune: 'o', SGR: SGR{FG: ColorRed}}),
+}
+
 var spellMeteor = Weapon{
 	Name:       "meteor",
 	Damage:     "4d3",
@@ -189,7 +225,7 @@ var spellMeteor = Weapon{
 	Targeting:  TargetingFree,
 	Magic:      true,
 	Hitbox:     HitboxBlob,
-	HitboxSize: 4,
+	HitboxSize: 3,
 	HitGlyph:   &Glyph{Rune: 'X', SGR: SGR{BG: ColorBrightYellow, FG: ColorRed}},
 	MPCost:     8,
 	projectile: projectileFunc(Glyph{Rune: 'O', SGR: SGR{FG: ColorRed}}),
@@ -235,7 +271,18 @@ var spellHeal2 = Weapon{
 
 var spellSmite = Weapon{
 	Name:      "smite",
-	Damage:    "2d5+1",
+	Damage:    "2d10+1",
+	Range:     5,
+	Targeting: TargetingFree,
+	Magic:     true,
+	Hitbox:    HitboxSingle,
+	HitGlyph:  &Glyph{Rune: '✞', SGR: SGR{FG: ColorBrightYellow}},
+	MPCost:    5,
+}
+
+var spellSmite2 = Weapon{
+	Name:      "smite ii",
+	Damage:    "3d10+2",
 	Range:     5,
 	Targeting: TargetingFree,
 	Magic:     true,

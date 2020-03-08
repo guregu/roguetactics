@@ -31,7 +31,7 @@ func randomBonus(level int, unit *Mob) Bonus {
 
 var genericBonuses = []func(level int) Bonus{
 	func(level int) Bonus {
-		hp := (level + 1) * 5
+		hp := (level + 2) * 3
 		return Bonus{
 			Name: fmt.Sprintf("+%d HP", hp),
 			Apply: func(m *Mob) {
@@ -89,7 +89,7 @@ func learnSpellBonus(class Class, magicUser bool) func(int, *Mob) Bonus {
 				},
 			}
 		}
-		mp := (level + 1) * 5
+		mp := (level + 2) * 3
 		if magicUser {
 			return Bonus{
 				Name: fmt.Sprintf("+%d MP", mp),
@@ -133,6 +133,10 @@ var classSpells = map[Class][]spellProgression{
 		{
 			spell: spellHeal2,
 		},
+		{
+			spell: spellSmite2,
+			level: 3,
+		},
 	},
 }
 
@@ -175,7 +179,7 @@ func itemBonus(class Class, magicUser bool) func(int, *Mob) Bonus {
 		if magicUser {
 			return learnSpellBonus(class, magicUser)(level, unit)
 		}
-		mp := (level + 1) * 5
+		mp := (level + 2) * 3
 		if magicUser {
 			return Bonus{
 				Name: fmt.Sprintf("+%d MP", mp),

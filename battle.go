@@ -172,6 +172,9 @@ var mapsByLevel = [][]string{
 	{
 		"throne",
 	},
+	{
+		"mountain",
+	},
 }
 
 var monstersByLevel = [][]Mob{
@@ -362,6 +365,32 @@ var monstersByLevel = [][]Mob{
 			maxHP:  30,
 			maxMP:  100,
 			weapon: spellSmite,
+		},
+	},
+	{
+		Mob{
+			name:   "yeti",
+			glyph:  GlyphOf('☃'),
+			speed:  6,
+			move:   4,
+			maxHP:  25,
+			weapon: weaponYetiFist,
+		},
+		Mob{
+			name:   "polar bear",
+			glyph:  GlyphOf('P'),
+			speed:  3,
+			move:   3,
+			maxHP:  35,
+			weapon: weaponSwipe,
+		},
+		Mob{
+			name:   "snow fox",
+			glyph:  GlyphOf('S'),
+			speed:  7,
+			move:   7,
+			maxHP:  15,
+			weapon: weaponSnowFoxBite,
 		},
 	},
 }

@@ -82,9 +82,21 @@ var weaponFist = Weapon{
 	Range:  1,
 }
 
+var weaponYetiFist = Weapon{
+	Name:   "yetifist",
+	Damage: "3d3",
+	Range:  1,
+}
+
 var weaponBite = Weapon{
 	Name:   "bite",
 	Damage: "1d3+1",
+	Range:  1,
+}
+
+var weaponSnowFoxBite = Weapon{
+	Name:   "snow fox bite",
+	Damage: "2d3+4",
 	Range:  1,
 }
 

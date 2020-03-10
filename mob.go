@@ -3,7 +3,6 @@ package main
 import (
 	// "log"
 	"fmt"
-	"math/rand"
 )
 
 type Loc struct {
@@ -71,6 +70,7 @@ type Mob struct {
 
 	tauntedBy *Mob
 	crippled  bool
+	buffs     map[*Buff]struct{}
 }
 
 func (m *Mob) Reset() {
@@ -80,6 +80,7 @@ func (m *Mob) Reset() {
 	m.moved = false
 	m.acted = false
 	m.tauntedBy = nil
+	m.buffs = make(map[*Buff]struct{})
 }
 
 func (m *Mob) Create(w *World) {
@@ -136,13 +137,23 @@ func (m *Mob) TakeTurn(w *World) {
 	m.moved = false
 	m.acted = false
 
+	for buff := range m.buffs {
+		buff.TurnTick()
+		if buff.Broken() {
+			delete(m.buffs, buff)
+			if buff.Remove != nil {
+				buff.Remove(w, m)
+			}
+		}
+	}
+
 	if m.tauntedBy != nil && m.tauntedBy.Dead() {
 		m.tauntedBy = nil
 	}
-	if m.crippled && rand.Intn(4) == 0 {
-		m.crippled = false
-		w.Broadcast(m.Name() + " can move again.")
-	}
+	// if m.crippled && rand.Intn(4) == 0 {
+	// 	m.crippled = false
+	// 	w.Broadcast(m.Name() + " can move again.")
+	// }
 
 	m.AddMP(m.Armor().MPRecovery + 1)
 
@@ -295,6 +306,22 @@ func (m *Mob) Damage(dmg int, src Weapon) int {
 		m.loc.Z = 1
 	}
 	return dmg
+}
+
+func (m *Mob) ApplyBuff(w *World, buff *Buff, src *Mob) {
+	if buff.Unique {
+		for buff := range m.buffs {
+			if buff.Name == buff.Name {
+				w.Broadcast("It wasn't effective.")
+				return
+			}
+		}
+	}
+
+	m.buffs[buff] = struct{}{}
+	if buff.Apply != nil {
+		buff.Apply(w, m, src)
+	}
 }
 
 func (m *Mob) Tick(w *World, tick int64) {

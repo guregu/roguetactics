@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 
 	"github.com/justinian/dice"
 )
@@ -344,11 +345,17 @@ var spellCripple = Weapon{
 	Hitbox: HitboxSingle,
 	// HitGlyph:   &Glyph{Rune: 'x', SGR: SGR{FG: ColorDarkRed}},
 	OnHit: func(w *World, source *Mob, target *Mob) {
-		if target.crippled {
-			return
+		life := rand.Intn(6) + 2
+		buff := newBuff("crippled", true, life, 0.1)
+		buff.Apply = func(w *World, m *Mob, src *Mob) {
+			m.crippled = true
+			w.Broadcast(m.Name() + " can no longer move!")
 		}
-		target.crippled = true
-		w.Broadcast(target.Name() + " can no longer move!")
+		buff.Remove = func(w *World, m *Mob) {
+			m.crippled = false
+			w.Broadcast(m.Name() + " can move again!")
+		}
+		target.ApplyBuff(w, buff, source)
 	},
 	projectile: projectileFunc(Glyph{Rune: 'x', SGR: SGR{FG: ColorRed}}),
 }

@@ -152,7 +152,7 @@ func (gw *TeamWindow) Render(scr [][]Glyph) {
 }
 
 func (gw *TeamWindow) Cursor() Coords {
-	return Coords{0, 0} //TODO
+	return OriginCoords //TODO
 }
 
 func (gw *TeamWindow) Input(input string) bool {

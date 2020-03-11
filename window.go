@@ -160,10 +160,10 @@ func (gw *GameWindow) Cursor() Coords {
 	up := gw.World.Up()
 	m, ok := up.(*Mob)
 	if !ok {
-		return Coords{0, 0}
+		return OriginCoords
 	}
 	loc := m.Loc()
-	return Coords{loc.X, loc.Y}
+	return loc.AsCoords()
 }
 
 type ChatWindow struct {

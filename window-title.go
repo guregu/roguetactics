@@ -40,7 +40,7 @@ func (mw *TitleWindow) Render(scr [][]Glyph) {
 }
 
 func (mw *TitleWindow) Cursor() Coords {
-	return Coords{0, 0} //TODO
+	return OriginCoords //TODO
 }
 
 func (mw *TitleWindow) Input(input string) bool {

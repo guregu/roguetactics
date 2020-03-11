@@ -23,7 +23,7 @@ func (gw *SpellsWindow) Render(scr [][]Glyph) {
 }
 
 func (gw *SpellsWindow) Cursor() Coords {
-	return Coords{0, 0} //TODO
+	return OriginCoords //TODO
 }
 
 func (gw *SpellsWindow) Input(input string) bool {

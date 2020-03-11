@@ -62,7 +62,7 @@ func newWorld() *World {
 		player: generatePlayerTeam(),
 
 		apply:      make(chan Action, 1024),
-		applySync:  make(chan Action, 1024),
+		applySync:  make(chan Action),
 		push:       make(chan StateAction, 32),
 		pushBottom: make(chan StateAction, 32),
 	}

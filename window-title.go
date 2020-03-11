@@ -39,8 +39,8 @@ func (mw *TitleWindow) Render(scr [][]Glyph) {
 	copyStringAlignRight(scr[len(scr)-1], "© Kawaii Solutions 2020")
 }
 
-func (mw *TitleWindow) Cursor() (x, y int) {
-	return 0, 0 //TODO
+func (mw *TitleWindow) Cursor() Coords {
+	return Coords{0, 0} //TODO
 }
 
 func (mw *TitleWindow) Input(input string) bool {
@@ -52,7 +52,7 @@ func (mw *TitleWindow) Input(input string) bool {
 	return true
 }
 
-func (mw *TitleWindow) Click(x, y int) bool {
+func (mw *TitleWindow) Click(_ Coords) bool {
 	return true
 }
 
@@ -60,7 +60,7 @@ func (mw *TitleWindow) ShouldRemove() bool {
 	return mw.done
 }
 
-func (gw *TitleWindow) Mouseover(x, y int) bool {
+func (gw *TitleWindow) Mouseover(_ Coords) bool {
 	return false
 }
 

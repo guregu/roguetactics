@@ -22,8 +22,8 @@ func (gw *SpellsWindow) Render(scr [][]Glyph) {
 	drawCenteredBox(scr, lines, 53)
 }
 
-func (gw *SpellsWindow) Cursor() (x, y int) {
-	return 0, 0 //TODO
+func (gw *SpellsWindow) Cursor() Coords {
+	return Coords{0, 0} //TODO
 }
 
 func (gw *SpellsWindow) Input(input string) bool {
@@ -48,7 +48,7 @@ func (gw *SpellsWindow) Input(input string) bool {
 	return true
 }
 
-func (gw *SpellsWindow) Click(x, y int) bool {
+func (gw *SpellsWindow) Click(_ Coords) bool {
 	return true
 }
 
@@ -56,6 +56,6 @@ func (gw *SpellsWindow) ShouldRemove() bool {
 	return gw.done
 }
 
-func (gw *SpellsWindow) Mouseover(x, y int) bool {
+func (gw *SpellsWindow) Mouseover(_ Coords) bool {
 	return false
 }

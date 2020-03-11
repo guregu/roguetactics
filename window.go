@@ -149,21 +149,21 @@ func (d *Display) nextFrame() [][]Glyph {
 
 type Window interface {
 	Render(scr [][]Glyph)
-	Cursor() (x, y int)
+	Cursor() Coords
 	Input(string) bool
-	Click(x, y int) bool
-	Mouseover(x, y int) bool
+	Click(coords Coords) bool
+	Mouseover(coords Coords) bool
 	ShouldRemove() bool
 }
 
-func (gw *GameWindow) Cursor() (x, y int) {
+func (gw *GameWindow) Cursor() Coords {
 	up := gw.World.Up()
 	m, ok := up.(*Mob)
 	if !ok {
-		return 0, 0
+		return Coords{0, 0}
 	}
 	loc := m.Loc()
-	return loc.X, loc.Y
+	return Coords{loc.X, loc.Y}
 }
 
 type ChatWindow struct {
@@ -178,8 +178,8 @@ func (cw *ChatWindow) Render(scr [][]Glyph) {
 	copyString(bottom, text, true)
 }
 
-func (cw *ChatWindow) Cursor() (x, y int) {
-	return len(cw.prompt) + len(cw.input), 27
+func (cw *ChatWindow) Cursor() Coords {
+	return Coords{len(cw.prompt) + len(cw.input), 27}
 }
 
 func (cw *ChatWindow) Input(input string) bool {
@@ -204,7 +204,7 @@ func (cw *ChatWindow) Input(input string) bool {
 	return true
 }
 
-func (cw *ChatWindow) Click(x, y int) bool {
+func (cw *ChatWindow) Click(_ Coords) bool {
 	return false
 }
 
@@ -212,7 +212,7 @@ func (cw *ChatWindow) ShouldRemove() bool {
 	return cw.done
 }
 
-func (*ChatWindow) Mouseover(x, y int) bool {
+func (*ChatWindow) Mouseover(_ Coords) bool {
 	return false
 }
 

@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	EscKey        = 27
 	ArrowKeyUp    = "\033[A"
 	ArrowKeyDown  = "\033[B"
 	ArrowKeyRight = "\033[C"
@@ -26,14 +27,15 @@ const (
 var mainMap *Map
 
 type Sesh struct {
-	x, y  int
+	Coords
+
 	world *World
 	ui    []Window
 	win   *GameWindow
 	ssh   Conn
 	disp  *Display
 
-	cursorX, cursorY int
+	cursor Coords
 }
 
 func NewSesh(s Conn, w *World) *Sesh {
@@ -101,16 +103,16 @@ func (sesh *Sesh) refresh() {
 	}
 	render := sesh.disp.diff()
 	if render == "" {
-		x, y := sesh.ui[len(sesh.ui)-1].Cursor()
-		if sesh.cursorX != x || sesh.cursorY != y {
-			sesh.setCursor(x, y)
-			sesh.cursorX, sesh.cursorY = x, y
+		cursor := sesh.ui[len(sesh.ui)-1].Cursor()
+		if sesh.cursor != cursor {
+			sesh.renderCursor(cursor)
+			sesh.cursor = cursor
 		}
 		return
 	}
 	// fmt.Println("Render: ", strings.Replace(render, "\033", "ESC", -1))
 	io.WriteString(sesh.ssh, render)
-	sesh.setCursor(sesh.ui[len(sesh.ui)-1].Cursor())
+	sesh.renderCursor(sesh.ui[len(sesh.ui)-1].Cursor())
 }
 
 func (sesh *Sesh) redraw() {
@@ -124,11 +126,11 @@ func (sesh *Sesh) redraw() {
 		sesh.ui[i].Render(scr)
 	}
 	io.WriteString(sesh.ssh, sesh.disp.full())
-	sesh.setCursor(sesh.ui[len(sesh.ui)-1].Cursor())
+	sesh.renderCursor(sesh.ui[len(sesh.ui)-1].Cursor())
 }
 
-func (sesh *Sesh) setCursor(x, y int) {
-	io.WriteString(sesh.ssh, fmt.Sprintf("\033[%d;%dH", y+1, x+1))
+func (sesh *Sesh) renderCursor(coords Coords) {
+	io.WriteString(sesh.ssh, fmt.Sprintf("\033[%d;%dH", coords.y+1, coords.x+1))
 }
 
 func (sesh *Sesh) Send(msg string) {

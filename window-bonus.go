@@ -32,7 +32,7 @@ func (gw *BonusWindow) Render(scr [][]Glyph) {
 
 	var buf bytes.Buffer
 	w := tabwriter.NewWriter(&buf, 8, 4, 1, ' ', 0)
-	fmt.Fprintln(w, "Which unit would you like to receive a bonus?\n")
+	fmt.Fprintln(w, "Which unit would you like to receive a bonus?")
 	spellCount := 0
 	for i := 0; i < len(gw.Team.Units); i++ {
 		unit := gw.Team.Units[i]
@@ -180,8 +180,8 @@ func (gw *BonusWindow) Render(scr [][]Glyph) {
 	drawCenteredBox(scr, lines, 17)
 }
 
-func (gw *BonusWindow) Cursor() (x, y int) {
-	return 0, 0 //TODO
+func (gw *BonusWindow) Cursor() Coords {
+	return OriginCoords // TODO
 }
 
 func (gw *BonusWindow) Input(input string) bool {
@@ -218,7 +218,7 @@ func (gw *BonusWindow) Input(input string) bool {
 	return true
 }
 
-func (gw *BonusWindow) Click(x, y int) bool {
+func (gw *BonusWindow) Click(_ Coords) bool {
 	return true
 }
 
@@ -226,6 +226,6 @@ func (gw *BonusWindow) ShouldRemove() bool {
 	return gw.done
 }
 
-func (gw *BonusWindow) Mouseover(x, y int) bool {
+func (gw *BonusWindow) Mouseover(_ Coords) bool {
 	return false
 }

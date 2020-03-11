@@ -9,7 +9,7 @@ var (
 	InvalidCoords = Coords{-1, -1}
 )
 
-func (c *Coords) IsValid() bool {
+func (c Coords) IsValid() bool {
 	return c.x != -1 && c.y != -1
 }
 

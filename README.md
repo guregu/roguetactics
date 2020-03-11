@@ -7,11 +7,11 @@ go get
 
 run locally (ssh ver):
 ```
-go build && ./roguetactics
-./ssh.sh # run the server; make sure your terminal is 80x27
+# run server
+go build && ./roguetactics  
 
-# and in another shell session
-ssh -o StrictHostKeyChecking=no localhost -p 2222 # connect to the server as a client
+# attach client
+./ssh.sh  
 ```
 
 

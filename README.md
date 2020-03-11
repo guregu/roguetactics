@@ -1,7 +1,8 @@
 ## roguelike tactics game
 
-install:
+install (this uses modules, don't put it in $GOPATH):
 ```
+# make sure you have go 1.14
 go get
 ```
 

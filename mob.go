@@ -79,12 +79,12 @@ type Mob struct {
 }
 
 type Stats struct {
-	Move     int   // move range
-	Speed    int   // how much to increment CT
-	Def      int   // physical defense
-	MagicDef int   // magical defense
-	Crippled bool  // can't move
-	BGs      []int // glyph BGs to cycle through
+	Move         int   // move range
+	Speed        int   // how much to increment CT
+	Defense      int   // physical defense
+	MagicDefense int   // magical defense
+	Crippled     bool  // can't move
+	BGs          []int // glyph BGs to cycle through
 }
 
 func (m *Mob) Reset(w *World) {
@@ -255,6 +255,10 @@ func (m *Mob) Armor() Armor {
 	return m.armor
 }
 
+func (m *Mob) Defense() int {
+	return m.Armor().Defense + m.stats.Defense
+}
+
 func (m *Mob) HP() int {
 	if m.hp < 0 {
 		return 0
@@ -301,8 +305,12 @@ func (m *Mob) Attackable() bool {
 }
 
 func (m *Mob) Damage(w *World, dmg int, src Weapon) int {
-	if dmg > 0 && !src.Magic {
-		dmg -= m.Armor().Defense
+	def := m.Defense()
+	if src.Magic {
+		def = m.stats.MagicDefense
+	}
+	if dmg > 0 {
+		dmg -= def
 		if dmg <= 0 {
 			dmg = 1
 		}

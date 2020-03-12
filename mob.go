@@ -3,6 +3,7 @@ package main
 import (
 	// "log"
 	"fmt"
+	"sort"
 )
 
 type Loc struct {
@@ -54,30 +55,39 @@ type Mob struct {
 	glyph   Glyph
 	actions []func(*Mob, *World)
 
-	ct    int
-	speed int
-	move  int // move range
+	ct int
 
 	class  Class
 	weapon Weapon
 	spells []Weapon
-
-	armor Armor
+	armor  Armor
 
 	hp    int
 	maxHP int
 	mp    int
 	maxMP int
 
+	base  Stats
+	stats Stats
+	bgIdx int // index of BG color to show
+
 	moved bool
 	acted bool
 
 	tauntedBy *Mob
-	crippled  bool
 	buffs     map[*Buff]struct{}
 }
 
-func (m *Mob) Reset() {
+type Stats struct {
+	Move     int   // move range
+	Speed    int   // how much to increment CT
+	Def      int   // physical defense
+	MagicDef int   // magical defense
+	Crippled bool  // can't move
+	BGs      []int // glyph BGs to cycle through
+}
+
+func (m *Mob) Reset(w *World) {
 	m.hp = m.maxHP
 	m.mp = m.maxMP
 	m.ct = 0
@@ -85,6 +95,8 @@ func (m *Mob) Reset() {
 	m.acted = false
 	m.tauntedBy = nil
 	m.buffs = make(map[*Buff]struct{})
+	m.refreshStats(w)
+	m.bgIdx = 0
 }
 
 func (m *Mob) Create(w *World) {
@@ -123,12 +135,8 @@ func (m *Mob) Glyph() Glyph {
 		return corpse
 	}
 	glyph := m.glyph
-	if m.HP() <= m.MaxHP()/4 {
-		glyph.BG = ColorDarkRed
-	} else if m.crippled {
-		glyph.BG = 237
-	} else if m.tauntedBy != nil {
-		glyph.BG = 166
+	if len(m.stats.BGs) > 0 && m.bgIdx < len(m.stats.BGs) {
+		glyph.BG = m.stats.BGs[m.bgIdx]
 	}
 	return glyph
 }
@@ -150,14 +158,12 @@ func (m *Mob) TakeTurn(w *World) {
 			}
 		}
 	}
+	m.refreshStats(w)
 
+	// TODO: move this to buff system somehow
 	if m.tauntedBy != nil && m.tauntedBy.Dead() {
 		m.tauntedBy = nil
 	}
-	// if m.crippled && rand.Intn(4) == 0 {
-	// 	m.crippled = false
-	// 	w.Broadcast(m.Name() + " can move again.")
-	// }
 
 	m.AddMP(m.Armor().MPRecovery + 1)
 
@@ -174,7 +180,7 @@ func (m *Mob) TurnTick(*World) {
 }
 
 func (m *Mob) Speed() int {
-	return m.speed
+	return m.stats.Speed
 }
 
 func (m *Mob) FinishTurn(moved, acted bool) {
@@ -205,10 +211,10 @@ func (m *Mob) Move(loc Loc) {
 }
 
 func (m *Mob) MoveRange() int {
-	if m.crippled {
+	if m.stats.Crippled {
 		return 0
 	}
-	return m.move
+	return m.stats.Move
 }
 
 func (m *Mob) CanAttack(world *World, other *Mob, weapon Weapon) bool {
@@ -294,7 +300,7 @@ func (m *Mob) Attackable() bool {
 	return !m.Dead()
 }
 
-func (m *Mob) Damage(dmg int, src Weapon) int {
+func (m *Mob) Damage(w *World, dmg int, src Weapon) int {
 	if dmg > 0 && !src.Magic {
 		dmg -= m.Armor().Defense
 		if dmg <= 0 {
@@ -309,15 +315,25 @@ func (m *Mob) Damage(dmg int, src Weapon) int {
 	if m.hp <= 0 {
 		m.loc.Z = 1
 	}
+
+	m.refreshStats(w)
 	return dmg
 }
 
 func (m *Mob) ApplyBuff(w *World, buff *Buff, src *Mob) {
-	if buff.Unique {
-		for buff := range m.buffs {
-			if buff.Name == buff.Name {
-				w.Broadcast("It wasn't effective.")
-				return
+	if buff.Unique() {
+		for existing := range m.buffs {
+			if buff.Name == existing.Name {
+				switch buff.Uniqueness {
+				case Unique:
+					w.Broadcast("It wasn't effective.")
+					return
+				case UniqueReplace:
+					delete(m.buffs, existing)
+					if existing.Remove != nil {
+						existing.Remove(w, m)
+					}
+				}
 			}
 		}
 	}
@@ -326,12 +342,39 @@ func (m *Mob) ApplyBuff(w *World, buff *Buff, src *Mob) {
 	if buff.Apply != nil {
 		buff.Apply(w, m, src)
 	}
+	m.refreshStats(w)
+}
+
+func (m *Mob) refreshStats(w *World) {
+	stats := m.base
+	if stats.BGs != nil {
+		stats.BGs = stats.BGs[:0]
+	}
+	for buff := range m.buffs {
+		if buff.Affect != nil {
+			buff.Affect(w, m, &stats)
+		}
+		if buff.BG != 0 {
+			stats.BGs = append(stats.BGs, buff.BG)
+		}
+	}
+	sort.Ints(stats.BGs)
+	// do this after sorting so that players get immediate feedback for critical damage
+	if m.HP() <= m.MaxHP()/4 {
+		stats.BGs = append([]int{ColorDarkRed}, stats.BGs...)
+		m.bgIdx = 0
+	}
+	fmt.Println("BGS:", m.Name(), stats.BGs)
+	m.stats = stats
 }
 
 func (m *Mob) Tick(w *World, tick int64) {
 	if len(m.actions) > 0 {
 		m.actions[0](m, w)
 		m.actions = m.actions[1:]
+	}
+	if tick%25 == 0 && len(m.stats.BGs) > 0 {
+		m.bgIdx = (m.bgIdx + 1) % len(m.stats.BGs)
 	}
 }
 

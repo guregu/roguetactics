@@ -38,7 +38,7 @@ type World struct {
 	score     int
 
 	apply      chan Action
-	applySync  chan Action
+	applySync  chan Action // this exists so the shutdown hook is guaranteed to run
 	push       chan StateAction
 	pushBottom chan StateAction
 }
@@ -372,7 +372,7 @@ func (w *World) StartBattle(level int) {
 	for teamID, team := range battle.Teams {
 		for i, unit := range team.Units {
 			unit.loc = m.SpawnPoints[teamID][i]
-			unit.Reset()
+			unit.Reset(w)
 			w.Add(unit)
 			n++
 		}
@@ -401,7 +401,7 @@ func (w *World) Attack(target *Mob, source *Mob, weapon Weapon) {
 		dmg = -dmg
 	}
 	if weapon.DamageType != DamageNone {
-		dmg = target.Damage(dmg, weapon)
+		dmg = target.Damage(w, dmg, weapon)
 		msg := fmt.Sprintf("%s attacked %s with %s for %d damage!", source.Name(), target.Name(), weapon.Name, dmg)
 		if dmg < 0 {
 			msg = fmt.Sprintf("%s heals %s with %s for %d HP!", source.Name(), target.Name(), weapon.Name, -dmg)

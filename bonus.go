@@ -44,7 +44,7 @@ var genericBonuses = []func(level int) Bonus{
 		return Bonus{
 			Name: fmt.Sprintf("+%d Speed", speed),
 			Apply: func(m *Mob) {
-				m.speed += speed
+				m.base.Speed += speed
 			},
 		}
 	},

@@ -45,8 +45,8 @@ func (mw *TitleWindow) Cursor() Coords {
 
 func (mw *TitleWindow) Input(input string) bool {
 	switch input[0] {
-	case 13: //ENTER
-		mw.World.apply <- StartBattleAction{Level: 0}
+	case EnterKey:
+		mw.World.StartBattle(0)
 		mw.done = true
 	}
 	return true

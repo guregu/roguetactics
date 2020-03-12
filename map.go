@@ -113,55 +113,6 @@ func (m *Map) Width() int {
 	return len(m.Tiles[0])
 }
 
-// func (m *Map) FindPath(fromX, fromY, toX, toY int, ignore ...Object) []Loc {
-// 	path, dist, ok := astar.Path(m.TileAt(toX, toY), m.TileAt(fromX, fromY))
-// 	fmt.Println("path", path, "dist", dist, "ok", ok)
-
-// 	if !ok {
-// 		return nil
-// 	}
-
-// 	result := make([]Loc, 0, len(path))
-// 	for _, p := range path {
-// 		tile := p.(*Tile)
-// 		result = append(result, Loc{Map: m.Name, X: tile.X, Y: tile.Y})
-// 	}
-// 	return result
-// 	// a := astar.NewAStar(m.Height(), m.Width())
-// 	// for y := 0; y < m.Height(); y++ {
-// 	// cols:
-// 	// 	for x := 0; x < m.Width(); x++ {
-// 	// 		tile := m.TileAt(x, y)
-// 	// 		if tile.Collides {
-// 	// 			a.FillTile(astar.Point{y, x}, -1)
-// 	// 		}
-// 	// 		if x != fromX || y != fromY {
-// 	// 			top := tile.Top()
-// 	// 			if top == nil {
-// 	// 				continue cols
-// 	// 			}
-// 	// 			for _, obj := range ignore {
-// 	// 				if top == obj {
-// 	// 					continue cols
-// 	// 				}
-// 	// 			}
-// 	// 			a.FillTile(astar.Point{y, x}, -1)
-// 	// 		}
-// 	// 	}
-// 	// }
-// 	// p2p := astar.NewPointToPoint()
-// 	// path := a.FindPath(p2p, []astar.Point{astar.Point{fromY, fromX}}, []astar.Point{astar.Point{toY, toX}})
-
-// 	// var locs []Loc
-// 	// for path != nil {
-// 	// 	if !(path.Col == fromX && path.Row == fromY) {
-// 	// 		locs = append(locs, Loc{Map: m.Name, X: path.Col, Y: path.Row})
-// 	// 	}
-// 	// 	path = path.Parent
-// 	// }
-// 	// return locs
-// }
-
 func (m *Map) FindPath(fromX, fromY, toX, toY int, ignore ...Object) []Loc {
 	a := m.astar(ignore...)
 	p2p := astar.NewPointToPoint()
@@ -193,8 +144,6 @@ func (m *Map) astar(ignore ...Object) astar.AStar {
 }
 
 func (m *Map) FindPathNextTo(from *Mob, to *Mob) []Loc {
-	// a := m.astar()
-	// l2p := astar.NewListToPoint(true)
 	fromLoc := from.Loc()
 	toLoc := to.Loc()
 
@@ -215,24 +164,6 @@ func (m *Map) FindPathNextTo(from *Mob, to *Mob) []Loc {
 	}
 
 	return path
-
-	// // surrounding := make([]astar.Point, 0, 4)
-	// surrounding := []astar.Point{
-	// 	astar.Point{toLoc.Y - 1, toLoc.X},
-	// 	astar.Point{toLoc.Y + 1, toLoc.X},
-	// 	astar.Point{toLoc.Y, toLoc.X - 1},
-	// 	astar.Point{toLoc.Y, toLoc.X + 1},
-	// }
-	// path := a.FindPath(l2p, surrounding, []astar.Point{astar.Point{fromLoc.Y, fromLoc.X}})
-
-	// var locs []Loc
-	// for path != nil {
-	// 	if !(path.Col == fromLoc.X && path.Row == fromLoc.Y) {
-	// 		locs = append(locs, Loc{Map: m.Name, X: path.Col, Y: path.Row})
-	// 	}
-	// 	path = path.Parent
-	// }
-	// return locs
 }
 
 func (m *Map) Raycast(from, to Loc, ignoreObstacles bool) (hit *Mob, blocked bool, path []Loc) {
@@ -353,64 +284,6 @@ func (t *Tile) Glyph() Glyph {
 	}
 	return t.Ground
 }
-
-// func (t *Tile) PathNeighbors() []astar.Pather {
-// 	neighbors := make([]astar.Pather, 0, 4)
-// 	if t.X != 0 {
-// 		other := t.Map.TileAt(t.X-1, t.Y)
-// 		if other != nil {
-// 			neighbors = append(neighbors, other)
-// 		}
-// 	}
-// 	if t.X != t.Map.Width()-1 {
-// 		other := t.Map.TileAt(t.X+1, t.Y)
-// 		if other != nil {
-// 			neighbors = append(neighbors, other)
-// 		}
-// 	}
-// 	if t.Y != 0 {
-// 		other := t.Map.TileAt(t.X, t.Y-1)
-// 		if other != nil {
-// 			neighbors = append(neighbors, other)
-// 		}
-// 	}
-// 	if t.Y != t.Map.Height()-1 {
-// 		other := t.Map.TileAt(t.X, t.Y+1)
-// 		if other != nil {
-// 			neighbors = append(neighbors, other)
-// 		}
-// 	}
-// 	return neighbors
-// }
-
-// func (t *Tile) PathNeighborCost(to astar.Pather) float64 {
-// 	target := to.(*Tile)
-// 	if target.Collides {
-// 		return 1000
-// 	}
-// 	if target.HasCollider() {
-// 		return 1000
-// 	}
-// 	return 1
-// }
-
-// func (t *Tile) PathEstimatedCost(to astar.Pather) float64 {
-// 	target := to.(*Tile)
-// 	if target.Collides {
-// 		return t.ManhattanDistance(to) * 1000
-// 	}
-// 	if target.HasCollider() {
-// 		return t.ManhattanDistance(to) * 1000
-// 	}
-// 	return t.ManhattanDistance(to)
-// }
-
-// func (t *Tile) ManhattanDistance(to astar.Pather) float64 {
-// 	if tile, ok := to.(*Tile); ok {
-// 		return float64(abs(t.X-tile.X) + abs(t.Y-tile.Y))
-// 	}
-// 	panic("bad tile distance")
-// }
 
 func (t *Tile) String() string {
 	return fmt.Sprintf("Tile(%s:%d,%d)", t.Map.Name, t.X, t.Y)

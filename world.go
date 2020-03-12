@@ -61,7 +61,7 @@ func newWorld() *World {
 
 		player: generatePlayerTeam(),
 
-		apply:      make(chan Action, 1024),
+		apply:      make(chan Action, 32),
 		applySync:  make(chan Action),
 		push:       make(chan StateAction, 32),
 		pushBottom: make(chan StateAction, 32),
@@ -129,12 +129,6 @@ func (w *World) Create(obj Object) {
 	}
 }
 
-// func (w *World) Place(obj *Object, mapName string) {
-// 	m := w.maps[mapName]
-// 	obj.Map = m
-// 	m.Add(obj)
-// }
-
 func (w *World) Delete(id ID) {
 	obj, ok := w.objects[id]
 	if !ok {
@@ -186,10 +180,6 @@ func (w *World) Run() {
 		case a := <-w.pushBottom:
 			w.state = append([]StateAction{a}, w.state...)
 		case <-ticker.C:
-			// if w.gameOver {
-			// 	w.notify()
-			// 	return
-			// }
 			if len(w.state) > 0 {
 				state := w.state[len(w.state)-1]
 				if state.Run(w) {
@@ -349,12 +339,8 @@ func (pa PartAction) Apply(w *World) {
 	delete(w.seshes, pa.listener)
 }
 
-type StartBattleAction struct {
-	Level int
-}
-
-func (sba StartBattleAction) Apply(w *World) {
-	if sba.Level > 0 {
+func (w *World) StartBattle(level int) {
+	if level > 0 {
 		w.score += 1000
 		w.score += max(0, (500-int(w.turn))*2)
 		for i := 0; i < len(w.player.Units); i++ {
@@ -371,11 +357,11 @@ func (sba StartBattleAction) Apply(w *World) {
 		}
 	}
 
-	battle := newBattle(sba.Level, w.player)
+	battle := newBattle(level, w.player)
 
 	m := w.Map(battle.Map)
 	m.Reset()
-	w.level = sba.Level
+	w.level = level
 	w.current = m
 	w.turn = 0
 	w.waitlist = nil
@@ -398,17 +384,7 @@ func (sba StartBattleAction) Apply(w *World) {
 		sesh.win = gw
 	}
 
-	w.apply <- NextTurnAction{}
-}
-
-type ForceWinActionDEBUG struct{}
-
-func (ForceWinActionDEBUG) Apply(w *World) {
-	w.winBattle()
-}
-
-type AddAction struct {
-	Obj Object
+	w.NextTurn()
 }
 
 func (w *World) Add(obj Object) {
@@ -419,75 +395,24 @@ func (w *World) Add(obj Object) {
 	}
 }
 
-func (aa AddAction) Apply(w *World) {
-	// log.Println("create action", aa.Obj)
-	w.Add(aa.Obj)
-}
-
-type PlaceAction struct {
-	ID      ID
-	Loc     Loc
-	Src     *Sesh
-	Collide bool
-}
-
-func (pa PlaceAction) Apply(w *World) {
-	// log.Println("place action", pa)
-	obj, ok := w.objects[pa.ID]
-	if !ok {
-		// log.Println("Can't place ID", pa.ID, pa.Loc)
-		return
-	}
-
-	m := w.Map(pa.Loc.Map)
-	if !m.Contains(pa.ID) {
-		m.Add(obj)
-		return
-	}
-	if pa.Collide && m.TileAtLoc(pa.Loc).Collides {
-		pa.Src.Send("Ouch!")
-		return
-	}
-	m.Move(obj, pa.Loc.X, pa.Loc.Y)
-
-	if pa.Src != nil {
-		loc := obj.Loc()
-		pa.Src.Send("Moved to " + fmt.Sprintf("(%d,%d)", loc.X, loc.Y))
-	}
-}
-
-type RemoveAction ID
-
-func (ra RemoveAction) Apply(w *World) {
-	// log.Println("remove action", ra)
-	w.Delete(ID(ra))
-}
-
-type AttackAction struct {
-	Source *Mob
-	Weapon Weapon
-	Target *Mob
-}
-
-func (aa AttackAction) Apply(w *World) {
-	weapon := aa.Weapon
+func (w *World) Attack(target *Mob, source *Mob, weapon Weapon) {
 	dmg := weapon.RollDamage()
 	if weapon.DamageType == DamageHealing {
 		dmg = -dmg
 	}
 	if weapon.DamageType != DamageNone {
-		dmg = aa.Target.Damage(dmg, weapon)
-		msg := fmt.Sprintf("%s attacked %s with %s for %d damage!", aa.Source.Name(), aa.Target.Name(), weapon.Name, dmg)
+		dmg = target.Damage(dmg, weapon)
+		msg := fmt.Sprintf("%s attacked %s with %s for %d damage!", source.Name(), target.Name(), weapon.Name, dmg)
 		if dmg < 0 {
-			msg = fmt.Sprintf("%s heals %s with %s for %d HP!", aa.Source.Name(), aa.Target.Name(), weapon.Name, -dmg)
+			msg = fmt.Sprintf("%s heals %s with %s for %d HP!", source.Name(), target.Name(), weapon.Name, -dmg)
 		}
 		w.Broadcast(msg)
 	}
 	if weapon.OnHit != nil {
-		weapon.OnHit(w, aa.Source, aa.Target)
+		weapon.OnHit(w, source, target)
 	}
-	if aa.Target.Dead() {
-		w.Broadcast(fmt.Sprintf("%s died.", aa.Target.Name()))
+	if target.Dead() {
+		w.Broadcast(fmt.Sprintf("%s died.", target.Name()))
 	}
 }
 
@@ -556,6 +481,8 @@ func (ca MouseoverAction) Apply(_ *World) {
 	ca.Sesh.removeWindows()
 }
 
+// ShutdownAction resets the terminal (useful when debugging).
+// It's the only thing that should be used with applySync.
 type ShutdownAction struct{}
 
 func (ShutdownAction) Apply(w *World) {
@@ -564,21 +491,13 @@ func (ShutdownAction) Apply(w *World) {
 	}
 }
 
-type NextTurnAction struct{}
-
-func (na NextTurnAction) Apply(w *World) {
-	w.NextTurn()
+func (*World) ApplyBonus(bonus Bonus, mob *Mob) {
+	bonus.Apply(mob)
 }
 
-type ApplyBonusAction struct {
-	Mob   *Mob
-	Bonus Bonus
-}
-
-func (ab ApplyBonusAction) Apply(w *World) {
-	ab.Bonus.Apply(ab.Mob)
-}
-
+// NextTurnState goes to the next turn.
+// It's usually called with pushBottom so that other states,
+// like MoveState will end before the next turn.
 type NextTurnState struct{}
 
 func (NextTurnState) Run(w *World) bool {
@@ -639,11 +558,7 @@ func (as *AttackState) Run(w *World) bool {
 	wep := as.Weapon
 	if as.done {
 		for _, t := range as.Targets {
-			w.apply <- AttackAction{
-				Source: as.Char,
-				Weapon: wep,
-				Target: t,
-			}
+			w.Attack(t, as.Char, wep)
 		}
 		return true
 	}
@@ -699,7 +614,7 @@ func (ai *EnemyAIState) Run(w *World) bool {
 	m := w.Map(loc.Map)
 
 	if ai.self.Dead() {
-		w.apply <- NextTurnAction{}
+		w.NextTurn()
 		return true
 	}
 
@@ -757,7 +672,7 @@ func (ai *EnemyAIState) Run(w *World) bool {
 			return false
 		}
 		ai.self.FinishTurn(ai.moved, ai.acted)
-		w.apply <- NextTurnAction{}
+		w.NextTurn()
 		return true
 	}
 

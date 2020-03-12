@@ -196,14 +196,9 @@ func (gw *BonusWindow) Input(input string) bool {
 			gw.choice = -1
 		case 13, 'y': // ENTER
 			if gw.choice >= 0 && gw.choice < len(gw.Bonuses) {
-				gw.World.apply <- ApplyBonusAction{
-					Mob:   gw.Team.Units[gw.choice],
-					Bonus: gw.Bonuses[gw.choice],
-				}
+				gw.World.ApplyBonus(gw.Bonuses[gw.choice], gw.Team.Units[gw.choice])
+				gw.World.StartBattle(gw.World.level + 1)
 				// TODO: show new stats?
-				gw.World.apply <- StartBattleAction{
-					Level: gw.World.level + 1,
-				}
 				gw.done = true
 			}
 		default:

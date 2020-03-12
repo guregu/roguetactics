@@ -13,7 +13,9 @@ import (
 )
 
 const (
+	EnterKey      = 13
 	EscKey        = 27
+	BackspaceKey  = 127
 	ArrowKeyUp    = "\033[A"
 	ArrowKeyDown  = "\033[B"
 	ArrowKeyRight = "\033[C"

@@ -33,7 +33,7 @@ func (gw *BonusWindow) Render(scr [][]Glyph) {
 	var buf bytes.Buffer
 	w := tabwriter.NewWriter(&buf, 8, 4, 1, ' ', 0)
 	fmt.Fprintln(w, "Which unit would you like to receive a bonus?")
-	fmt.Fprintln(w, "") // stop vet from complaining about a trailing \n
+	fmt.Fprintln(w) // stop vet from complaining about a trailing \n
 	spellCount := 0
 	for i := 0; i < len(gw.Team.Units); i++ {
 		unit := gw.Team.Units[i]

@@ -166,56 +166,6 @@ func (gw *GameWindow) Cursor() Coords {
 	return loc.AsCoords()
 }
 
-type ChatWindow struct {
-	prompt string
-	input  string
-	done   bool
-}
-
-func (cw *ChatWindow) Render(scr [][]Glyph) {
-	bottom := scr[len(scr)-1]
-	text := cw.prompt + cw.input
-	copyString(bottom, text, true)
-}
-
-func (cw *ChatWindow) Cursor() Coords {
-	return Coords{len(cw.prompt) + len(cw.input), 27}
-}
-
-func (cw *ChatWindow) Input(input string) bool {
-	switch input[0] {
-	case 13: // ENTER
-		cw.done = true
-		fmt.Println("Chat:", cw.input)
-		return true
-	case 27: // ESC
-		cw.done = true
-		return true
-	case 127: // BS
-		if len(cw.input) > 0 {
-			cw.input = cw.input[:len(cw.input)-1]
-		}
-		return true
-	}
-	if input == ArrowKeyLeft || input == ArrowKeyRight || input == ArrowKeyUp || input == ArrowKeyDown {
-		return true
-	}
-	cw.input += input
-	return true
-}
-
-func (cw *ChatWindow) Click(_ Coords) bool {
-	return false
-}
-
-func (cw *ChatWindow) ShouldRemove() bool {
-	return cw.done
-}
-
-func (*ChatWindow) Mouseover(_ Coords) bool {
-	return false
-}
-
 func drawCenteredBox(scr [][]Glyph, lines []string, bgColor int) {
 	linelen := len(lines[0])
 	for _, line := range lines {
@@ -319,8 +269,4 @@ const (
 	ColorWhite        = 15
 	ColorDarkRed      = 52
 	ColorGray         = 237
-)
-
-var (
-	_ Window = (*ChatWindow)(nil)
 )

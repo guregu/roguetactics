@@ -53,10 +53,10 @@ func (gw *GameWindow) Input(in string) bool {
 		return gw.showCast()
 	case "q", ";":
 		gw.Sesh.PushWindow(&FarlookWindow{
-			World:  gw.World,
-			Sesh:   gw.Sesh,
-			Char:   gw.World.Up(),
-			cursor: InvalidCoords,
+			World:         gw.World,
+			Sesh:          gw.Sesh,
+			Char:          gw.World.Up(),
+			cursorHandler: newCursorHandlerOn(gw.World, gw.World.Up()),
 		})
 	case "r":
 		if !gw.moved {
@@ -105,11 +105,11 @@ func (gw *GameWindow) showMove() bool {
 	if m, ok := up.(*Mob); ok {
 		gw.startLoc = m.Loc()
 		gw.Sesh.PushWindow(&MoveWindow{
-			World:  gw.World,
-			Sesh:   gw.Sesh,
-			Char:   m,
-			Range:  m.MoveRange(),
-			cursor: InvalidCoords,
+			World:         gw.World,
+			Sesh:          gw.Sesh,
+			Char:          m,
+			Range:         m.MoveRange(),
+			cursorHandler: newCursorHandlerOn(gw.World, m),
 			callback: func(moved bool) {
 				if moved {
 					gw.moved = true
@@ -129,11 +129,11 @@ func (gw *GameWindow) showAttack() bool {
 	up := gw.World.Up()
 	if m, ok := up.(*Mob); ok {
 		gw.Sesh.PushWindow(&AttackWindow{
-			World:  gw.World,
-			Sesh:   gw.Sesh,
-			Char:   m,
-			Weapon: m.Weapon(),
-			cursor: InvalidCoords,
+			World:         gw.World,
+			Sesh:          gw.Sesh,
+			Char:          m,
+			Weapon:        m.Weapon(),
+			cursorHandler: newCursorHandlerOn(gw.World, m),
 			callback: func(acted bool) {
 				if acted {
 					gw.acted = true
@@ -164,12 +164,12 @@ func (gw *GameWindow) showCast() bool {
 				loc := m.Loc()
 
 				gw.Sesh.PushWindow(&AttackWindow{
-					World:  gw.World,
-					Sesh:   gw.Sesh,
-					Char:   m,
-					Weapon: spells[i],
-					Self:   true,
-					cursor: loc.AsCoords(),
+					World:         gw.World,
+					Sesh:          gw.Sesh,
+					Char:          m,
+					Weapon:        spells[i],
+					Self:          true,
+					cursorHandler: newCursorHandler(loc.AsCoords(), gw.World.Map(loc.Map)),
 					callback: func(acted bool) {
 						if acted {
 							gw.acted = true

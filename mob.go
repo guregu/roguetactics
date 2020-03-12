@@ -10,7 +10,7 @@ type Loc struct {
 	X, Y, Z int
 }
 
-func (loc *Loc) AsCoords() Coords {
+func (loc Loc) AsCoords() Coords {
 	return Coords{loc.X, loc.Y}
 }
 

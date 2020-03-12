@@ -14,7 +14,7 @@ type AttackWindow struct {
 	done     bool
 	callback func(moved bool)
 
-	cursor Coords
+	*cursorHandler
 }
 
 func (mw *AttackWindow) Render(scr [][]Glyph) {
@@ -34,41 +34,34 @@ func (mw *AttackWindow) Render(scr [][]Glyph) {
 	}
 	copyString(scr[len(scr)-1], help, true)
 
-	if mw.cursor.IsValid() {
-		switch wep.Hitbox {
-		case HitboxSingle:
-			scr[mw.cursor.y][mw.cursor.x].BG = ColorOlive
-		case HitboxCross:
-			highlightRange(scr, Loc{Map: loc.Map, X: mw.cursor.x, Y: mw.cursor.y}, m, true, wep.HitboxSize, TargetingCross, ColorOlive)
-		case HitboxBlob:
-			highlightRange(scr, Loc{Map: loc.Map, X: mw.cursor.x, Y: mw.cursor.y}, m, true, wep.HitboxSize, TargetingFree, ColorOlive)
-		}
+	cursor := mw.cursor
+	if !cursor.IsValid() {
+		cursor = mw.origin
+	}
 
-		if target, ok := m.TileAt(mw.cursor.x, mw.cursor.y).Top().(*Mob); ok {
-			var dmginfo string
-			if wep.Damage != "" {
-				dmgname := "damage"
-				if wep.DamageType == DamageHealing {
-					dmgname = "heal"
-				}
-				dmginfo = fmt.Sprintf(" (%s: %s)", dmgname, wep.Damage)
+	switch wep.Hitbox {
+	case HitboxSingle:
+		scr[cursor.y][cursor.x].BG = ColorOlive
+	case HitboxCross:
+		highlightRange(scr, Loc{Map: loc.Map, X: cursor.x, Y: cursor.y}, m, true, wep.HitboxSize, TargetingCross, ColorOlive)
+	case HitboxBlob:
+		highlightRange(scr, Loc{Map: loc.Map, X: cursor.x, Y: cursor.y}, m, true, wep.HitboxSize, TargetingFree, ColorOlive)
+	}
+
+	if target, ok := m.TileAt(cursor.x, cursor.y).Top().(*Mob); ok {
+		var dmginfo string
+		if wep.Damage != "" {
+			dmgname := "damage"
+			if wep.DamageType == DamageHealing {
+				dmgname = "heal"
 			}
-			status := append(append(GlyphsOf(" └"), target.StatusLine(true)...), GlyphsOf(dmginfo)...)
-			copyGlyphs(scr[len(scr)-2], status, true)
-		} else {
-			copyString(scr[len(scr)-2], " └", true)
+			dmginfo = fmt.Sprintf(" (%s: %s)", dmgname, wep.Damage)
 		}
+		status := append(append(GlyphsOf(" └"), target.StatusLine(true)...), GlyphsOf(dmginfo)...)
+		copyGlyphs(scr[len(scr)-2], status, true)
 	} else {
 		copyString(scr[len(scr)-2], " └", true)
 	}
-}
-
-func (mw *AttackWindow) Cursor() (coords Coords) {
-	if mw.cursor.IsValid() {
-		return mw.cursor
-	}
-	loc := mw.Char.Loc()
-	return Coords{loc.X, loc.Y}
 }
 
 func (mw *AttackWindow) Input(input string) bool {
@@ -77,13 +70,13 @@ func (mw *AttackWindow) Input(input string) bool {
 	}
 	if len(input) == 1 {
 		switch input[0] {
-		case 27: // ESC
+		case EscKey: // ESC
 			if mw.callback != nil {
 				mw.callback(false)
 			}
 			mw.done = true
 			return true
-		case '.', 13:
+		case '.', EnterKey:
 			if mw.cursor.IsValid() {
 				return mw.Click(mw.cursor)
 			} else if mw.Self {
@@ -96,17 +89,7 @@ func (mw *AttackWindow) Input(input string) bool {
 	wep := mw.Weapon
 
 	if wep.Targeting == TargetingFree {
-		switch input {
-		case ArrowKeyLeft:
-			mw.moveCursor(-1, 0)
-		case ArrowKeyRight:
-			mw.moveCursor(1, 0)
-		case ArrowKeyUp:
-			mw.moveCursor(0, -1)
-		case ArrowKeyDown:
-			mw.moveCursor(0, 1)
-		}
-		return true
+		return mw.cursorInput(input)
 	}
 
 	switch input {
@@ -194,24 +177,6 @@ func (mw *AttackWindow) ShouldRemove() bool {
 
 func (mw *AttackWindow) close() {
 	mw.done = true
-}
-
-func (mw *AttackWindow) Mouseover(mouseover Coords) bool {
-	loc := mw.Char.Loc()
-	m := mw.World.Map(loc.Map)
-	if mouseover.x >= m.Width() || mouseover.y >= m.Height() {
-		return true
-	}
-	mw.cursor = mouseover
-	return true
-}
-
-func (mw *AttackWindow) moveCursor(dx, dy int) {
-	loc := mw.Char.Loc()
-	m := mw.World.Map(loc.Map)
-	mw.cursor.MergeInIfInvalid(loc.AsCoords())
-	mw.cursor.Add(dx, dy)
-	mw.cursor.EnsureWithinBounds(m.Width(), m.Height())
 }
 
 func highlightRange(scr [][]Glyph, loc Loc, m *Map, selfOK bool, size int, targeting TargetingType, bgColor int) {

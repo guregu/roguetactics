@@ -9,7 +9,7 @@ type FarlookWindow struct {
 	Sesh  *Sesh
 	Char  Object
 
-	cursor Coords
+	*cursorHandler
 
 	done bool
 }
@@ -45,33 +45,15 @@ func (mw *FarlookWindow) defaultLoc() Loc {
 	return Loc{Map: mw.World.current.Name, X: 0, Y: 0}
 }
 
-func (mw *FarlookWindow) Cursor() Coords {
-	if mw.cursor.IsValid() {
-		return mw.cursor
-	}
-	loc := mw.defaultLoc()
-	return Coords{loc.X, loc.Y}
-}
-
 func (mw *FarlookWindow) Input(input string) bool {
 	if len(input) == 1 {
 		switch input[0] {
-		case 13, 27: //ENTER
+		case EscKey, EnterKey:
 			mw.done = true
 		}
 	}
-	switch input {
-	case ArrowKeyLeft:
-		mw.moveCursor(-1, 0)
-	case ArrowKeyRight:
-		mw.moveCursor(1, 0)
-	case ArrowKeyUp:
-		mw.moveCursor(0, -1)
-	case ArrowKeyDown:
-		mw.moveCursor(0, 1)
-	}
 
-	return true
+	return mw.cursorInput(input)
 }
 
 func (mw *FarlookWindow) Click(_ Coords) bool {
@@ -81,24 +63,6 @@ func (mw *FarlookWindow) Click(_ Coords) bool {
 
 func (mw *FarlookWindow) ShouldRemove() bool {
 	return mw.done
-}
-
-func (mw *FarlookWindow) Mouseover(mouseover Coords) bool {
-	m := mw.World.Map(mw.defaultLoc().Map)
-	if mouseover.x >= m.Width() || mouseover.y >= m.Height() {
-		return true
-	}
-	mw.cursor = mouseover
-	return true
-}
-
-func (mw *FarlookWindow) moveCursor(dx, dy int) {
-	loc := mw.defaultLoc()
-	m := mw.World.Map(loc.Map)
-
-	mw.cursor.MergeInIfInvalid(loc.AsCoords())
-	mw.cursor.Add(dx, dy)
-	mw.cursor.EnsureWithinBounds(m.Width(), m.Height())
 }
 
 var (

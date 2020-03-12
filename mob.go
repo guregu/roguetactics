@@ -10,6 +10,10 @@ type Loc struct {
 	X, Y, Z int
 }
 
+func (loc *Loc) AsCoords() Coords {
+	return Coords{loc.X, loc.Y}
+}
+
 type Pos struct {
 	X, Y, Z int
 }

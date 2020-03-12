@@ -9,8 +9,7 @@ type FarlookWindow struct {
 	Sesh  *Sesh
 	Char  Object
 
-	cursorX int
-	cursorY int
+	cursor Coords
 
 	done bool
 }
@@ -19,12 +18,12 @@ func (mw *FarlookWindow) Render(scr [][]Glyph) {
 	copyString(scr[len(scr)-1], "Query: use arrow keys or mouse to look around, ESC to exit.", true)
 
 	const arrow = " └"
-	if mw.cursorX == -1 || mw.cursorY == -1 {
+	if !mw.cursor.IsValid() {
 		copyString(scr[len(scr)-2], arrow, true)
 		return
 	}
 	m := mw.World.Map(mw.defaultLoc().Map)
-	tile := m.TileAt(mw.cursorX, mw.cursorY)
+	tile := m.TileAt(mw.cursor.x, mw.cursor.y)
 	if target, ok := tile.Top().(*Mob); ok {
 		status := append(GlyphsOf(arrow), target.StatusLine(true)...)
 		copyGlyphs(scr[len(scr)-2], status, true)
@@ -46,12 +45,12 @@ func (mw *FarlookWindow) defaultLoc() Loc {
 	return Loc{Map: mw.World.current.Name, X: 0, Y: 0}
 }
 
-func (mw *FarlookWindow) Cursor() (x, y int) {
-	if mw.cursorX != -1 && mw.cursorY != -1 {
-		return mw.cursorX, mw.cursorY
+func (mw *FarlookWindow) Cursor() Coords {
+	if mw.cursor.IsValid() {
+		return mw.cursor
 	}
 	loc := mw.defaultLoc()
-	return loc.X, loc.Y
+	return Coords{loc.X, loc.Y}
 }
 
 func (mw *FarlookWindow) Input(input string) bool {
@@ -75,7 +74,7 @@ func (mw *FarlookWindow) Input(input string) bool {
 	return true
 }
 
-func (mw *FarlookWindow) Click(x, y int) bool {
+func (mw *FarlookWindow) Click(_ Coords) bool {
 	// TODO: popup detailed info window
 	return true
 }
@@ -84,33 +83,22 @@ func (mw *FarlookWindow) ShouldRemove() bool {
 	return mw.done
 }
 
-func (mw *FarlookWindow) Mouseover(x, y int) bool {
+func (mw *FarlookWindow) Mouseover(mouseover Coords) bool {
 	m := mw.World.Map(mw.defaultLoc().Map)
-	if x >= m.Width() || y >= m.Height() {
+	if mouseover.x >= m.Width() || mouseover.y >= m.Height() {
 		return true
 	}
-	mw.cursorX = x
-	mw.cursorY = y
+	mw.cursor = mouseover
 	return true
 }
 
 func (mw *FarlookWindow) moveCursor(dx, dy int) {
 	loc := mw.defaultLoc()
 	m := mw.World.Map(loc.Map)
-	if mw.cursorX == -1 {
-		mw.cursorX = loc.X
-	}
-	if mw.cursorY == -1 {
-		mw.cursorY = loc.Y
-	}
-	mw.cursorX += dx
-	if mw.cursorX >= m.Width() {
-		mw.cursorX = m.Width() - 1
-	}
-	mw.cursorY += dy
-	if mw.cursorY >= m.Height() {
-		mw.cursorY = m.Height() - 1
-	}
+
+	mw.cursor.MergeInIfInvalid(loc.AsCoords())
+	mw.cursor.Add(dx, dy)
+	mw.cursor.EnsureWithinBounds(m.Width(), m.Height())
 }
 
 var (

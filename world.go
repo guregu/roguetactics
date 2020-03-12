@@ -533,7 +533,7 @@ type ClickAction struct {
 func (ca ClickAction) Apply(_ *World) {
 	for i := len(ca.UI) - 1; i >= 0; i-- {
 		win := ca.UI[i]
-		if win.Click(ca.X, ca.Y) {
+		if win.Click(Coords{ca.X, ca.Y}) {
 			return
 		}
 	}
@@ -549,7 +549,7 @@ type MouseoverAction struct {
 func (ca MouseoverAction) Apply(_ *World) {
 	for i := len(ca.UI) - 1; i >= 0; i-- {
 		win := ca.UI[i]
-		if win.Mouseover(ca.X, ca.Y) {
+		if win.Mouseover(Coords{ca.X, ca.Y}) {
 			return
 		}
 	}

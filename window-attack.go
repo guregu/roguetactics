@@ -14,8 +14,7 @@ type AttackWindow struct {
 	done     bool
 	callback func(moved bool)
 
-	cursorX int
-	cursorY int
+	cursor Coords
 }
 
 func (mw *AttackWindow) Render(scr [][]Glyph) {
@@ -35,17 +34,17 @@ func (mw *AttackWindow) Render(scr [][]Glyph) {
 	}
 	copyString(scr[len(scr)-1], help, true)
 
-	if mw.cursorX != -1 && mw.cursorY != -1 {
+	if mw.cursor.IsValid() {
 		switch wep.Hitbox {
 		case HitboxSingle:
-			scr[mw.cursorY][mw.cursorX].BG = ColorOlive
+			scr[mw.cursor.y][mw.cursor.x].BG = ColorOlive
 		case HitboxCross:
-			highlightRange(scr, Loc{Map: loc.Map, X: mw.cursorX, Y: mw.cursorY}, m, true, wep.HitboxSize, TargetingCross, ColorOlive)
+			highlightRange(scr, Loc{Map: loc.Map, X: mw.cursor.x, Y: mw.cursor.y}, m, true, wep.HitboxSize, TargetingCross, ColorOlive)
 		case HitboxBlob:
-			highlightRange(scr, Loc{Map: loc.Map, X: mw.cursorX, Y: mw.cursorY}, m, true, wep.HitboxSize, TargetingFree, ColorOlive)
+			highlightRange(scr, Loc{Map: loc.Map, X: mw.cursor.x, Y: mw.cursor.y}, m, true, wep.HitboxSize, TargetingFree, ColorOlive)
 		}
 
-		if target, ok := m.TileAt(mw.cursorX, mw.cursorY).Top().(*Mob); ok {
+		if target, ok := m.TileAt(mw.cursor.x, mw.cursor.y).Top().(*Mob); ok {
 			var dmginfo string
 			if wep.Damage != "" {
 				dmgname := "damage"
@@ -64,12 +63,12 @@ func (mw *AttackWindow) Render(scr [][]Glyph) {
 	}
 }
 
-func (mw *AttackWindow) Cursor() (x, y int) {
-	if mw.cursorX != -1 && mw.cursorY != -1 {
-		return mw.cursorX, mw.cursorY
+func (mw *AttackWindow) Cursor() (coords Coords) {
+	if mw.cursor.IsValid() {
+		return mw.cursor
 	}
 	loc := mw.Char.Loc()
-	return loc.X, loc.Y
+	return Coords{loc.X, loc.Y}
 }
 
 func (mw *AttackWindow) Input(input string) bool {
@@ -85,11 +84,11 @@ func (mw *AttackWindow) Input(input string) bool {
 			mw.done = true
 			return true
 		case '.', 13:
-			if mw.cursorX != -1 && mw.cursorY != -1 {
-				return mw.Click(mw.cursorX, mw.cursorY)
+			if mw.cursor.IsValid() {
+				return mw.Click(mw.cursor)
 			} else if mw.Self {
 				loc := mw.Char.Loc()
-				return mw.Click(loc.X, loc.Y)
+				return mw.Click(Coords{loc.X, loc.Y})
 			}
 		}
 	}
@@ -112,20 +111,20 @@ func (mw *AttackWindow) Input(input string) bool {
 
 	switch input {
 	case ArrowKeyLeft:
-		mw.Click(loc.X-wep.Range, loc.Y)
+		mw.Click(Coords{loc.X - wep.Range, loc.Y})
 	case ArrowKeyRight:
-		mw.Click(loc.X+wep.Range, loc.Y)
+		mw.Click(Coords{loc.X + wep.Range, loc.Y})
 	case ArrowKeyUp:
-		mw.Click(loc.X, loc.Y-wep.Range)
+		mw.Click(Coords{loc.X, loc.Y - wep.Range})
 	case ArrowKeyDown:
-		mw.Click(loc.X, loc.Y+wep.Range)
+		mw.Click(Coords{loc.X, loc.Y + wep.Range})
 	case ">":
-		mw.Click(loc.X, loc.Y)
+		mw.Click(Coords{loc.X, loc.Y})
 	}
 	return true
 }
 
-func (mw *AttackWindow) Click(x, y int) bool {
+func (mw *AttackWindow) Click(click Coords) bool {
 	if mw.Readonly {
 		return true
 	}
@@ -133,13 +132,13 @@ func (mw *AttackWindow) Click(x, y int) bool {
 	loc := mw.Char.Loc()
 	m := mw.World.Map(loc.Map)
 	wep := mw.Weapon
-	targetLoc := Loc{Map: m.Name, X: x, Y: y}
+	targetLoc := Loc{Map: m.Name, X: click.x, Y: click.y}
 	canAttack := wep.Magic
 	var targets []*Mob
 	var projpath []Loc
 	var hitlocs []Loc
 	if wep.Magic {
-		if !withinRange(loc, m, true, wep.Range, wep.Targeting, x, y) {
+		if !withinRange(loc, m, true, wep.Range, wep.Targeting, click.x, click.y) {
 			mw.Sesh.Bell()
 			return true
 		}
@@ -158,7 +157,7 @@ func (mw *AttackWindow) Click(x, y int) bool {
 			return true
 		}
 		if len(path) > wep.Range ||
-			(wep.Targeting == TargetingCross && ((loc.X != x) && (loc.Y != y))) {
+			(wep.Targeting == TargetingCross && ((loc.X != click.x) && (loc.Y != click.y))) {
 			// out of range
 			mw.Sesh.Bell()
 			return true
@@ -197,34 +196,22 @@ func (mw *AttackWindow) close() {
 	mw.done = true
 }
 
-func (mw *AttackWindow) Mouseover(x, y int) bool {
+func (mw *AttackWindow) Mouseover(mouseover Coords) bool {
 	loc := mw.Char.Loc()
 	m := mw.World.Map(loc.Map)
-	if x >= m.Width() || y >= m.Height() {
+	if mouseover.x >= m.Width() || mouseover.y >= m.Height() {
 		return true
 	}
-	mw.cursorX = x
-	mw.cursorY = y
+	mw.cursor = mouseover
 	return true
 }
 
 func (mw *AttackWindow) moveCursor(dx, dy int) {
 	loc := mw.Char.Loc()
 	m := mw.World.Map(loc.Map)
-	if mw.cursorX == -1 {
-		mw.cursorX = loc.X
-	}
-	if mw.cursorY == -1 {
-		mw.cursorY = loc.Y
-	}
-	mw.cursorX += dx
-	if mw.cursorX >= m.Width() {
-		mw.cursorX = m.Width() - 1
-	}
-	mw.cursorY += dy
-	if mw.cursorY >= m.Height() {
-		mw.cursorY = m.Height() - 1
-	}
+	mw.cursor.MergeInIfInvalid(loc.AsCoords())
+	mw.cursor.Add(dx, dy)
+	mw.cursor.EnsureWithinBounds(m.Width(), m.Height())
 }
 
 func highlightRange(scr [][]Glyph, loc Loc, m *Map, selfOK bool, size int, targeting TargetingType, bgColor int) {

@@ -8,9 +8,13 @@ go get
 
 run locally (ssh ver):
 ```
-go build && ./roguetactics
-./ssh.sh # make sure your terminal is 80x27
+# run server
+go build && ./roguetactics  
+
+# attach client
+./ssh.sh  
 ```
+
 
 web version (see deploy.sh)
 ```

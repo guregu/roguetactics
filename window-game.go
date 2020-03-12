@@ -53,11 +53,10 @@ func (gw *GameWindow) Input(in string) bool {
 		return gw.showCast()
 	case "q", ";":
 		gw.Sesh.PushWindow(&FarlookWindow{
-			World:   gw.World,
-			Sesh:    gw.Sesh,
-			Char:    gw.World.Up(),
-			cursorX: -1,
-			cursorY: -1,
+			World:  gw.World,
+			Sesh:   gw.Sesh,
+			Char:   gw.World.Up(),
+			cursor: InvalidCoords,
 		})
 	case "r":
 		if !gw.moved {
@@ -106,12 +105,11 @@ func (gw *GameWindow) showMove() bool {
 	if m, ok := up.(*Mob); ok {
 		gw.startLoc = m.Loc()
 		gw.Sesh.PushWindow(&MoveWindow{
-			World:   gw.World,
-			Sesh:    gw.Sesh,
-			Char:    m,
-			Range:   m.MoveRange(),
-			cursorX: -1,
-			cursorY: -1,
+			World:  gw.World,
+			Sesh:   gw.Sesh,
+			Char:   m,
+			Range:  m.MoveRange(),
+			cursor: InvalidCoords,
 			callback: func(moved bool) {
 				if moved {
 					gw.moved = true
@@ -131,12 +129,11 @@ func (gw *GameWindow) showAttack() bool {
 	up := gw.World.Up()
 	if m, ok := up.(*Mob); ok {
 		gw.Sesh.PushWindow(&AttackWindow{
-			World:   gw.World,
-			Sesh:    gw.Sesh,
-			Char:    m,
-			Weapon:  m.Weapon(),
-			cursorX: -1,
-			cursorY: -1,
+			World:  gw.World,
+			Sesh:   gw.Sesh,
+			Char:   m,
+			Weapon: m.Weapon(),
+			cursor: InvalidCoords,
 			callback: func(acted bool) {
 				if acted {
 					gw.acted = true
@@ -164,15 +161,15 @@ func (gw *GameWindow) showCast() bool {
 			Sesh:  gw.Sesh,
 			Char:  m,
 			callback: func(i int) {
+				loc := m.Loc()
 
 				gw.Sesh.PushWindow(&AttackWindow{
-					World:   gw.World,
-					Sesh:    gw.Sesh,
-					Char:    m,
-					Weapon:  spells[i],
-					Self:    true,
-					cursorX: m.Loc().X,
-					cursorY: m.Loc().Y,
+					World:  gw.World,
+					Sesh:   gw.Sesh,
+					Char:   m,
+					Weapon: spells[i],
+					Self:   true,
+					cursor: loc.AsCoords(),
 					callback: func(acted bool) {
 						if acted {
 							gw.acted = true
@@ -275,18 +272,18 @@ func (gw *GameWindow) ShouldRemove() bool {
 	return gw.done
 }
 
-func (gw *GameWindow) Click(x, y int) bool {
+func (gw *GameWindow) Click(click Coords) bool {
 	if !gw.myTurn() {
 		return true
 	}
 
 	up := gw.World.Up()
 	uploc := up.Loc()
-	if uploc.X == x && uploc.Y == y {
+	if uploc.X == click.x && uploc.Y == click.y {
 		return gw.showMove()
 	}
 
-	tile := gw.Map.TileAt(x, y)
+	tile := gw.Map.TileAt(click.x, click.y)
 	if mob, ok := tile.Top().(*Mob); ok {
 		if mob.Team() != gw.Team {
 			return gw.showAttack()
@@ -297,7 +294,7 @@ func (gw *GameWindow) Click(x, y int) bool {
 	return true
 }
 
-func (gw *GameWindow) Mouseover(x, y int) bool {
+func (gw *GameWindow) Mouseover(_ Coords) bool {
 	return false
 }
 
@@ -313,8 +310,8 @@ func (gw *GameOverWindow) Render(scr [][]Glyph) {
 	drawCenteredBox(scr, lines, ColorDarkRed)
 }
 
-func (gw *GameOverWindow) Cursor() (x, y int) {
-	return 0, 0 //TODO
+func (gw *GameOverWindow) Cursor() Coords {
+	return OriginCoords //TODO
 }
 
 func (gw *GameOverWindow) Input(input string) bool {
@@ -327,7 +324,7 @@ func (gw *GameOverWindow) Input(input string) bool {
 	return true
 }
 
-func (gw *GameOverWindow) Click(x, y int) bool {
+func (gw *GameOverWindow) Click(_ Coords) bool {
 	return true
 }
 
@@ -335,7 +332,7 @@ func (gw *GameOverWindow) ShouldRemove() bool {
 	return gw.done
 }
 
-func (gw *GameOverWindow) Mouseover(x, y int) bool {
+func (gw *GameOverWindow) Mouseover(_ Coords) bool {
 	return false
 }
 
@@ -355,8 +352,8 @@ func (gw *VictoryWindow) Render(scr [][]Glyph) {
 	drawCenteredBox(scr, lines, 17)
 }
 
-func (gw *VictoryWindow) Cursor() (x, y int) {
-	return 0, 0 //TODO
+func (gw *VictoryWindow) Cursor() Coords {
+	return OriginCoords //TODO
 }
 
 func (gw *VictoryWindow) Input(input string) bool {
@@ -388,7 +385,7 @@ func (gw *VictoryWindow) Input(input string) bool {
 	return true
 }
 
-func (gw *VictoryWindow) Click(x, y int) bool {
+func (gw *VictoryWindow) Click(_ Coords) bool {
 	return true
 }
 
@@ -396,7 +393,7 @@ func (gw *VictoryWindow) ShouldRemove() bool {
 	return gw.done
 }
 
-func (gw *VictoryWindow) Mouseover(x, y int) bool {
+func (gw *VictoryWindow) Mouseover(_ Coords) bool {
 	return false
 }
 
@@ -412,8 +409,8 @@ func (gw *GameWonWindow) Render(scr [][]Glyph) {
 	drawCenteredBox(scr, lines, 17)
 }
 
-func (gw *GameWonWindow) Cursor() (x, y int) {
-	return 0, 0 //TODO
+func (gw *GameWonWindow) Cursor() Coords {
+	return OriginCoords //TODO
 }
 
 func (gw *GameWonWindow) Input(input string) bool {
@@ -429,7 +426,7 @@ func (gw *GameWonWindow) Input(input string) bool {
 	return true
 }
 
-func (gw *GameWonWindow) Click(x, y int) bool {
+func (gw *GameWonWindow) Click(_ Coords) bool {
 	return true
 }
 
@@ -437,7 +434,7 @@ func (gw *GameWonWindow) ShouldRemove() bool {
 	return gw.done
 }
 
-func (gw *GameWonWindow) Mouseover(x, y int) bool {
+func (gw *GameWonWindow) Mouseover(_ Coords) bool {
 	return false
 }
 

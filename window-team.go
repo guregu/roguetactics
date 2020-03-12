@@ -151,8 +151,8 @@ func (gw *TeamWindow) Render(scr [][]Glyph) {
 	drawCenteredBox(scr, lines, color)
 }
 
-func (gw *TeamWindow) Cursor() (x, y int) {
-	return 0, 0 //TODO
+func (gw *TeamWindow) Cursor() Coords {
+	return OriginCoords //TODO
 }
 
 func (gw *TeamWindow) Input(input string) bool {
@@ -181,7 +181,7 @@ func (gw *TeamWindow) Input(input string) bool {
 	return true
 }
 
-func (gw *TeamWindow) Click(x, y int) bool {
+func (gw *TeamWindow) Click(_ Coords) bool {
 	return true
 }
 
@@ -189,6 +189,6 @@ func (gw *TeamWindow) ShouldRemove() bool {
 	return gw.done
 }
 
-func (gw *TeamWindow) Mouseover(x, y int) bool {
+func (gw *TeamWindow) Mouseover(_ Coords) bool {
 	return false
 }

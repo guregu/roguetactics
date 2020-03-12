@@ -11,8 +11,7 @@ type MoveWindow struct {
 	callback func(moved bool)
 
 	pathcache map[*Tile][]Loc
-	cursorX   int
-	cursorY   int
+	cursor    Coords
 }
 
 func (mw *MoveWindow) Render(scr [][]Glyph) {
@@ -56,42 +55,44 @@ func (mw *MoveWindow) Render(scr [][]Glyph) {
 			}
 		}
 	}
-	if mw.cursorX != -1 && mw.cursorY != -1 {
+	if mw.cursor.IsValid() {
 		glyph := mw.Char.Glyph()
-		scr[mw.cursorY][mw.cursorX].Rune = 'X'
-		scr[mw.cursorY][mw.cursorX].FG = glyph.FG
-		scr[mw.cursorY][mw.cursorX].BG = ColorBlack
+		scr[mw.cursor.y][mw.cursor.x].Rune = 'X'
+		scr[mw.cursor.y][mw.cursor.x].FG = glyph.FG
+		scr[mw.cursor.y][mw.cursor.x].BG = ColorBlack
 	}
 	copyString(scr[len(scr)-1], "Move: click, or arrow keys then . or enter to move; ESC to cancel", true)
 }
 
-func (mw *MoveWindow) Cursor() (x, y int) {
-	if mw.cursorX != -1 && mw.cursorY != -1 {
-		return mw.cursorX, mw.cursorY
+func (mw *MoveWindow) Cursor() Coords {
+	if mw.cursor.IsValid() {
+		return mw.cursor
 	}
 	loc := mw.Char.Loc()
-	return loc.X, loc.Y
+	return Coords{loc.X, loc.Y}
 }
 
 func (mw *MoveWindow) Input(input string) bool {
 	if mw.Readonly {
 		return false
 	}
+	// Handle single-char inputs, like keypress
 	if len(input) == 1 {
 		switch input[0] {
-		case 27: // ESC
+		case EscKey:
 			if mw.callback != nil {
 				mw.callback(false)
 			}
 			mw.done = true
 			return true
 		case '.', 13:
-			if mw.cursorX != -1 && mw.cursorY != -1 {
-				return mw.Click(mw.cursorX, mw.cursorY)
+			if mw.cursor.IsValid() {
+				return mw.Click(mw.cursor)
 			}
 		}
 	}
 
+	// Handle multi-char inputs
 	switch input {
 	case ArrowKeyLeft:
 		mw.moveCursor(-1, 0)
@@ -109,29 +110,20 @@ func (mw *MoveWindow) Input(input string) bool {
 func (mw *MoveWindow) moveCursor(dx, dy int) {
 	loc := mw.Char.Loc()
 	m := mw.World.Map(loc.Map)
-	if mw.cursorX == -1 {
-		mw.cursorX = loc.X
-	}
-	if mw.cursorY == -1 {
-		mw.cursorY = loc.Y
-	}
-	mw.cursorX += dx
-	if mw.cursorX >= m.Width() {
-		mw.cursorX = m.Width() - 1
-	}
-	mw.cursorY += dy
-	if mw.cursorY >= m.Height() {
-		mw.cursorY = m.Height() - 1
-	}
+	cursor := mw.cursor
+
+	cursor.MergeInIfInvalid(loc.AsCoords())
+	cursor.Add(dx, dy)
+	cursor.EnsureWithinBounds(m.Width(), m.Height())
 }
 
-func (mw *MoveWindow) Click(x, y int) bool {
+func (mw *MoveWindow) Click(coords Coords) bool {
 	if mw.Readonly {
 		return false
 	}
 	loc := mw.Char.Loc()
 	m := mw.World.Map(loc.Map)
-	path := m.FindPath(loc.X, loc.Y, x, y, mw.Char)
+	path := m.FindPath(loc.X, loc.Y, coords.x, coords.y, mw.Char)
 	if len(path) > mw.Range {
 		mw.Sesh.Bell()
 		return true
@@ -155,7 +147,7 @@ func (mw *MoveWindow) ShouldRemove() bool {
 	return mw.done
 }
 
-func (mw *MoveWindow) Mouseover(x, y int) bool {
+func (mw *MoveWindow) Mouseover(_ Coords) bool {
 	return false
 }
 

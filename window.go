@@ -267,6 +267,8 @@ const (
 	ColorBrightPink   = 13
 	ColorTeal         = 14
 	ColorWhite        = 15
+	ColorDarkGreen    = 22
 	ColorDarkRed      = 52
+	ColorDiarrhea     = 58
 	ColorGray         = 237
 )

@@ -121,6 +121,7 @@ var classBase = map[Class]Mob{
 		armor:  armorLeather,
 		spells: []Weapon{
 			spellCripple,
+			spellPoisonShot,
 		},
 	},
 	"Wizard": Mob{
@@ -151,6 +152,7 @@ var classBase = map[Class]Mob{
 		weapon: weaponStaff,
 		spells: []Weapon{
 			spellHeal,
+			spellRenew,
 		},
 		armor: armorRobe,
 	},

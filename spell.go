@@ -126,6 +126,33 @@ var spellGloria = Weapon{
 	MPCost:     10,
 }
 
+var spellRenew = Weapon{
+	Name:      "renew",
+	Damage:    Damage{Type: DamageNone},
+	Range:     6,
+	Targeting: TargetingFree,
+	Magic:     true,
+	MPCost:    5,
+	Hitbox:    HitboxSingle,
+	HitGlyph:  &Glyph{Rune: '✚', SGR: SGR{FG: ColorBrightGreen}},
+	OnHit: func(w *World, source *Mob, target *Mob) {
+		life := rand.Intn(3) + 4
+		buff := newBuff("renew", NotUnique, life, 0)
+		buff.BG = ColorDarkGreen
+		buff.DoT = Damage{
+			Dice: dicey.MustParse("1d4+1"),
+			Type: DamageHealing,
+		}
+		buff.OnApply = func(w *World, m *Mob, src *Mob) {
+			// w.Broadcast(m.Name() + " is ")
+		}
+		buff.OnRemove = func(w *World, m *Mob) {
+			// w.Broadcast(m.Name() + " ")
+		}
+		target.ApplyBuff(w, buff, source)
+	},
+}
+
 var spellTaunt = Weapon{
 	Name:      "taunt",
 	Damage:    Damage{Type: DamageNone},
@@ -182,4 +209,31 @@ var spellCripple = Weapon{
 		target.ApplyBuff(w, buff, source)
 	},
 	projectile: projectileFunc(Glyph{Rune: 'x', SGR: SGR{FG: ColorRed}}),
+}
+
+var spellPoisonShot = Weapon{
+	Name:      "poison shot",
+	Damage:    Damage{Type: DamageNone},
+	Range:     6,
+	Targeting: TargetingFree,
+	// Magic:      true,
+	MPCost: 5,
+	Hitbox: HitboxSingle,
+	// HitGlyph:   &Glyph{Rune: 'x', SGR: SGR{FG: ColorDarkRed}},
+	OnHit: func(w *World, source *Mob, target *Mob) {
+		life := rand.Intn(3) + 4
+		buff := newBuff("poison", NotUnique, life, 0.1)
+		buff.BG = ColorDiarrhea
+		buff.DoT = Damage{
+			Dice: dicey.MustParse("1d4+1"),
+		}
+		buff.OnApply = func(w *World, m *Mob, src *Mob) {
+			w.Broadcast(m.Name() + " is poisoned!")
+		}
+		buff.OnRemove = func(w *World, m *Mob) {
+			// w.Broadcast(m.Name() + " ")
+		}
+		target.ApplyBuff(w, buff, source)
+	},
+	projectile: projectileFunc(Glyph{Rune: '*', SGR: SGR{FG: ColorDiarrhea}}),
 }

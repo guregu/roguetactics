@@ -1,16 +1,15 @@
 package main
 
 import (
-	"github.com/justinian/dice"
+	"github.com/guregu/dicey"
 )
 
 type Weapon struct {
-	Name       string
-	Damage     string
-	Range      int
-	Targeting  TargetingType
-	DamageType DamageType
-	Value      int
+	Name      string
+	Damage    Damage
+	Range     int
+	Targeting TargetingType
+	Value     int
 
 	// spells
 	Magic      bool // ignore walls etc
@@ -23,10 +22,20 @@ type Weapon struct {
 	projectile func() Object
 }
 
+type Damage struct {
+	Dice dicey.Dice
+	Type DamageType
+}
+
+func (d Damage) IsValid() bool {
+	return d.Dice.Max() != 0
+}
+
 type DamageType int
 
 const (
 	DamageNormal DamageType = iota
+	DamageMagic
 	DamageHealing
 	DamageNone
 )
@@ -47,119 +56,118 @@ const (
 )
 
 func (w Weapon) RollDamage() int {
-	if w.Damage == "" {
+	if !w.Damage.IsValid() {
 		return 0
 	}
-	res, _, _ := dice.Roll(w.Damage)
-	return res.Int()
+	return w.Damage.Dice.Roll()
 }
 
 var weaponShortsword = Weapon{
 	Name:   "shortsword",
-	Damage: "2d3+2",
+	Damage: Damage{Dice: dicey.MustParse("2d3+2")},
 	Range:  1,
 }
 
 var weaponSword = Weapon{
 	Name:   "sword",
-	Damage: "2d4+3",
+	Damage: Damage{Dice: dicey.MustParse("2d4+3")},
 	Range:  1,
 	Value:  1,
 }
 
 var weaponGreatsword = Weapon{
 	Name:   "greatsword",
-	Damage: "3d5+4",
+	Damage: Damage{Dice: dicey.MustParse("3d5+4")},
 	Range:  1,
 	Value:  2,
 }
 
 var weaponFist = Weapon{
 	Name:   "fist",
-	Damage: "1d3",
+	Damage: Damage{Dice: dicey.MustParse("1d3")},
 	Range:  1,
 }
 
 var weaponYetiFist = Weapon{
 	Name:   "yetifist",
-	Damage: "3d3",
+	Damage: Damage{Dice: dicey.MustParse("3d3")},
 	Range:  1,
 }
 
 var weaponBite = Weapon{
 	Name:   "bite",
-	Damage: "1d3+1",
+	Damage: Damage{Dice: dicey.MustParse("1d3+1")},
 	Range:  1,
 }
 
 var weaponSnowFoxBite = Weapon{
 	Name:   "snow fox bite",
-	Damage: "2d3+4",
+	Damage: Damage{Dice: dicey.MustParse("2d3+4")},
 	Range:  1,
 }
 
 var weaponScratch = Weapon{
 	Name:   "scratch",
-	Damage: "2d2",
+	Damage: Damage{Dice: dicey.MustParse("2d2")},
 	Range:  1,
 }
 
 var weaponLick = Weapon{
 	Name:   "lick",
-	Damage: "1d2",
+	Damage: Damage{Dice: dicey.MustParse("1d2")},
 	Range:  1,
 }
 
 var weaponPeck = Weapon{
 	Name:   "peck",
-	Damage: "1d3",
+	Damage: Damage{Dice: dicey.MustParse("1d3")},
 	Range:  1,
 }
 
 var weaponSwipe = Weapon{
 	Name:   "swipe",
-	Damage: "3d4+1",
+	Damage: Damage{Dice: dicey.MustParse("3d4+1")},
 	Range:  1,
 }
 
 var weaponShank = Weapon{
 	Name:   "shank",
-	Damage: "1d5+1",
+	Damage: Damage{Dice: dicey.MustParse("1d5+1")},
 	Range:  1,
 }
 
 var weaponFirebreathing = Weapon{
 	Name:       "firebreathing",
-	Damage:     "2d8+4",
+	Damage:     Damage{Dice: dicey.MustParse("2d8+4")},
 	Range:      3,
 	projectile: projectileFunc(Glyph{Rune: '#', SGR: SGR{FG: ColorBrightRed}}),
 }
 
 var weaponPick = Weapon{
 	Name:   "mattock",
-	Damage: "2d6+3",
+	Damage: Damage{Dice: dicey.MustParse("2d6+3")},
 	Range:  1,
 }
 
 var weaponSpear = Weapon{
 	Name:   "spear",
-	Damage: "2d8",
+	Damage: Damage{Dice: dicey.MustParse("2d8")},
 	Range:  2,
 }
 
 var weaponKick = Weapon{
 	Name:   "kick",
-	Damage: "3d6",
+	Damage: Damage{Dice: dicey.MustParse("3d6")},
 }
 
 var weaponCrush = Weapon{
 	Name:   "kick",
-	Damage: "2d10",
+	Damage: Damage{Dice: dicey.MustParse("2d10")},
 }
 
 var weaponBow = Weapon{
 	Name:       "bow",
-	Damage:     "2d2+1",
+	Damage:     Damage{Dice: dicey.MustParse("2d2+1")},
 	Range:      6,
 	Targeting:  TargetingFree,
 	projectile: projectileFunc(GlyphOf('*')),
@@ -167,7 +175,7 @@ var weaponBow = Weapon{
 
 var weaponLongbow = Weapon{
 	Name:       "longbow",
-	Damage:     "2d5+2",
+	Damage:     Damage{Dice: dicey.MustParse("2d5+2")},
 	Range:      7,
 	Targeting:  TargetingFree,
 	projectile: projectileFunc(GlyphOf('*')),
@@ -176,7 +184,7 @@ var weaponLongbow = Weapon{
 
 var weaponCrossbow = Weapon{
 	Name:       "crossbow",
-	Damage:     "3d4+4",
+	Damage:     Damage{Dice: dicey.MustParse("3d4+4")},
 	Range:      6,
 	Targeting:  TargetingFree,
 	projectile: projectileFunc(GlyphOf('*')),
@@ -185,21 +193,22 @@ var weaponCrossbow = Weapon{
 
 var weaponStaff = Weapon{
 	Name:   "staff",
-	Damage: "1d4",
+	Damage: Damage{Dice: dicey.MustParse("1d4")},
 	Range:  2,
 }
 
 var weaponBeatstick = Weapon{
 	Name:   "beatstick",
-	Damage: "2d10",
+	Damage: Damage{Dice: dicey.MustParse("2d10")},
 	Range:  2,
 }
 
 var weaponHealingStaff = Weapon{
-	Name:       "healing rod",
-	Damage:     "3d8",
-	DamageType: DamageHealing,
-	Range:      2,
+	Name: "healing rod",
+	Damage: Damage{
+		Dice: dicey.MustParse("3d8"),
+		Type: DamageHealing},
+	Range: 2,
 }
 
 func projectileFunc(g Glyph) func() Object {

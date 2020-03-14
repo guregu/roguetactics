@@ -161,7 +161,7 @@ func itemBonus(class Class, magicUser, reroll bool) func(int, *Mob) Bonus {
 
 			if spell.weapon != nil {
 				return Bonus{
-					Name: fmt.Sprintf("%s (%s)", spell.weapon.Name, spell.weapon.Damage),
+					Name: fmt.Sprintf("%s (%s)", spell.weapon.Name, spell.weapon.Damage.Dice.String()),
 					Apply: func(mob *Mob) {
 						mob.weapon = *spell.weapon
 					},

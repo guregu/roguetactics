@@ -190,7 +190,7 @@ func (gw *GameWindow) nextTurn() bool {
 		if m.Team() != gw.Team {
 			return true
 		}
-		m.FinishTurn(gw.moved, gw.acted)
+		m.FinishTurn(gw.World, gw.moved, gw.acted)
 	}
 	gw.World.pushBottom <- NextTurnState{}
 	gw.moved = false
@@ -316,7 +316,7 @@ func (gw *GameOverWindow) Cursor() Coords {
 
 func (gw *GameOverWindow) Input(input string) bool {
 	switch input[0] {
-	case 13: //ENTER
+	case EnterKey:
 		gw.Sesh.PushWindow(&TitleWindow{World: gw.World, Sesh: gw.Sesh})
 		gw.World.reset()
 		gw.done = true
@@ -362,7 +362,7 @@ func (gw *VictoryWindow) Input(input string) bool {
 	}
 
 	switch input[0] {
-	case 13: //ENTER
+	case EnterKey:
 		if gw.World.level+1 >= len(mapsByLevel) {
 			gw.Sesh.PushWindow(&GameWonWindow{
 				World: gw.World,
@@ -419,7 +419,7 @@ func (gw *GameWonWindow) Input(input string) bool {
 	}
 
 	switch input[0] {
-	case 13: //ENTER
+	case EnterKey:
 		gw.Sesh.PushWindow(&TeamWindow{World: gw.World, Sesh: gw.Sesh, Win: true, Team: gw.World.player})
 		gw.done = true
 	}

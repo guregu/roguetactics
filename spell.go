@@ -2,13 +2,15 @@ package main
 
 import (
 	"math/rand"
+
+	"github.com/guregu/dicey"
 )
 
 // TODO: make this its own type instead of using Weapon?
 
 var spellFireball = Weapon{
 	Name:       "fireball",
-	Damage:     "2d3",
+	Damage:     Damage{Dice: dicey.MustParse("2d3"), Type: DamageMagic},
 	Range:      6,
 	Targeting:  TargetingFree,
 	Magic:      true,
@@ -21,7 +23,7 @@ var spellFireball = Weapon{
 
 var spellFireball2 = Weapon{
 	Name:       "fireball ii",
-	Damage:     "6d4",
+	Damage:     Damage{Dice: dicey.MustParse("6d4"), Type: DamageMagic},
 	Range:      6,
 	Targeting:  TargetingFree,
 	Magic:      true,
@@ -34,7 +36,7 @@ var spellFireball2 = Weapon{
 
 var spellMeteor = Weapon{
 	Name:       "meteor",
-	Damage:     "4d3",
+	Damage:     Damage{Dice: dicey.MustParse("4d3"), Type: DamageMagic},
 	Range:      7,
 	Targeting:  TargetingFree,
 	Magic:      true,
@@ -47,7 +49,7 @@ var spellMeteor = Weapon{
 
 var spellBolt = Weapon{
 	Name:       "bolt",
-	Damage:     "5d5+2",
+	Damage:     Damage{Dice: dicey.MustParse("5d5+2"), Type: DamageMagic},
 	Range:      6,
 	Targeting:  TargetingFree,
 	Magic:      true,
@@ -58,9 +60,11 @@ var spellBolt = Weapon{
 }
 
 var spellHeal = Weapon{
-	Name:       "heal",
-	Damage:     "3d5+5",
-	DamageType: DamageHealing,
+	Name: "heal",
+	Damage: Damage{
+		Dice: dicey.MustParse("3d5+5"),
+		Type: DamageHealing,
+	},
 	Range:      6,
 	Targeting:  TargetingFree,
 	Magic:      true,
@@ -71,9 +75,11 @@ var spellHeal = Weapon{
 }
 
 var spellHeal2 = Weapon{
-	Name:       "heal ii",
-	Damage:     "4d6+8",
-	DamageType: DamageHealing,
+	Name: "heal ii",
+	Damage: Damage{
+		Dice: dicey.MustParse("4d6+8"),
+		Type: DamageHealing,
+	},
 	Range:      6,
 	Targeting:  TargetingFree,
 	Magic:      true,
@@ -85,7 +91,7 @@ var spellHeal2 = Weapon{
 
 var spellSmite = Weapon{
 	Name:      "smite",
-	Damage:    "2d10+1",
+	Damage:    Damage{Dice: dicey.MustParse("2d10+1"), Type: DamageMagic},
 	Range:     5,
 	Targeting: TargetingFree,
 	Magic:     true,
@@ -96,7 +102,7 @@ var spellSmite = Weapon{
 
 var spellSmite2 = Weapon{
 	Name:      "smite ii",
-	Damage:    "3d10+2",
+	Damage:    Damage{Dice: dicey.MustParse("3d10+2"), Type: DamageMagic},
 	Range:     5,
 	Targeting: TargetingFree,
 	Magic:     true,
@@ -106,9 +112,11 @@ var spellSmite2 = Weapon{
 }
 
 var spellGloria = Weapon{
-	Name:       "gloria",
-	Damage:     "2d5+5",
-	DamageType: DamageHealing,
+	Name: "gloria",
+	Damage: Damage{
+		Dice: dicey.MustParse("2d5+5"),
+		Type: DamageHealing,
+	},
 	Range:      6,
 	Targeting:  TargetingFree,
 	Magic:      true,
@@ -119,13 +127,13 @@ var spellGloria = Weapon{
 }
 
 var spellTaunt = Weapon{
-	Name:       "taunt",
-	DamageType: DamageNone,
-	Range:      6,
-	Targeting:  TargetingFree,
-	Magic:      true,
-	Hitbox:     HitboxSingle,
-	HitGlyph:   &Glyph{Rune: '!', SGR: SGR{FG: ColorDarkRed}},
+	Name:      "taunt",
+	Damage:    Damage{Type: DamageNone},
+	Range:     6,
+	Targeting: TargetingFree,
+	Magic:     true,
+	Hitbox:    HitboxSingle,
+	HitGlyph:  &Glyph{Rune: '!', SGR: SGR{FG: ColorDarkRed}},
 	OnHit: func(w *World, source *Mob, target *Mob) {
 		if source.Team() == target.Team() {
 			w.Broadcast(source.Name() + " tries to taunt " + target.Name() + ", but they laugh instead.")
@@ -133,19 +141,27 @@ var spellTaunt = Weapon{
 		}
 		buff := newBuff("taunt", UniqueReplace, -1, 0)
 		buff.BG = 166
-		buff.Apply = func(w *World, m *Mob, src *Mob) {
+		buff.OnApply = func(w *World, m *Mob, src *Mob) {
 			m.tauntedBy = src
 			w.Broadcast(src.Name() + " taunted " + m.Name() + ".")
+		}
+		buff.OnTakeTurn = func(w *World, m *Mob) {
+			if m.tauntedBy != nil && m.tauntedBy.Dead() {
+				buff.Life = 0
+			}
+		}
+		buff.OnRemove = func(w *World, m *Mob) {
+			m.tauntedBy = nil
 		}
 		target.ApplyBuff(w, buff, source)
 	},
 }
 
 var spellCripple = Weapon{
-	Name:       "aim: legs",
-	DamageType: DamageNone,
-	Range:      6,
-	Targeting:  TargetingFree,
+	Name:      "aim: legs",
+	Damage:    Damage{Type: DamageNone},
+	Range:     6,
+	Targeting: TargetingFree,
 	// Magic:      true,
 	MPCost: 5,
 	Hitbox: HitboxSingle,
@@ -154,13 +170,13 @@ var spellCripple = Weapon{
 		life := rand.Intn(6) + 2
 		buff := newBuff("crippled", Unique, life, 0.1)
 		buff.BG = 237
-		buff.Apply = func(w *World, m *Mob, src *Mob) {
+		buff.OnApply = func(w *World, m *Mob, src *Mob) {
 			w.Broadcast(m.Name() + " can no longer move!")
 		}
 		buff.Affect = func(w *World, m *Mob, stats *Stats) {
 			stats.Crippled = true
 		}
-		buff.Remove = func(w *World, m *Mob) {
+		buff.OnRemove = func(w *World, m *Mob) {
 			w.Broadcast(m.Name() + " can move again!")
 		}
 		target.ApplyBuff(w, buff, source)

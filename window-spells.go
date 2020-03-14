@@ -29,7 +29,7 @@ func (gw *SpellsWindow) Cursor() Coords {
 func (gw *SpellsWindow) Input(input string) bool {
 	if len(input) == 1 {
 		switch input[0] {
-		case 27: // ESC
+		case EscKey:
 			gw.done = true
 		default:
 			i := int(input[0] - 'a')

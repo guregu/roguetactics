@@ -151,10 +151,20 @@ func (m *Mob) TakeTurn(w *World) {
 
 	for buff := range m.buffs {
 		buff.TurnTick()
+		if buff.OnTakeTurn != nil {
+			buff.OnTakeTurn(w, m)
+		}
 		if buff.Broken() {
 			delete(m.buffs, buff)
-			if buff.Remove != nil {
-				buff.Remove(w, m)
+			if buff.OnRemove != nil {
+				buff.OnRemove(w, m)
+			}
+			continue
+		}
+		if buff.DoT.IsValid() && buff.DoT.Type == DamageHealing {
+			dmg := m.Damage(w, buff.DoT)
+			if dmg != 0 {
+				w.Broadcast(fmt.Sprintf("%s was healed by %s for %d.", m.Name(), buff.Name, -dmg))
 			}
 		}
 	}
@@ -183,7 +193,23 @@ func (m *Mob) Speed() int {
 	return m.stats.Speed
 }
 
-func (m *Mob) FinishTurn(moved, acted bool) {
+func (m *Mob) FinishTurn(w *World, moved, acted bool) {
+	// apply DoTs
+	dead := m.Dead()
+	if !dead {
+		for buff := range m.buffs {
+			if buff.DoT.IsValid() && buff.DoT.Type != DamageHealing {
+				dmg := m.Damage(w, buff.DoT)
+				if dmg != 0 {
+					w.Broadcast(fmt.Sprintf("%s was damaged by %s for %d.", m.Name(), buff.Name, dmg))
+				}
+			}
+		}
+	}
+	if !dead && m.Dead() {
+		w.Broadcast(fmt.Sprintf("%s died.", m.Name()))
+	}
+
 	if moved && acted {
 		m.ct -= 100
 		return
@@ -241,7 +267,7 @@ func (m *Mob) Class() Class {
 }
 
 func (m *Mob) Weapon() Weapon {
-	if m.weapon.Damage == "" {
+	if !m.weapon.Damage.IsValid() {
 		return weaponFist
 	}
 	return m.weapon
@@ -304,19 +330,27 @@ func (m *Mob) Attackable() bool {
 	return !m.Dead()
 }
 
-func (m *Mob) Damage(w *World, dmg int, src Weapon) int {
+func (m *Mob) Damage(w *World, dmg Damage) int {
+	if m.Dead() {
+		return 0
+	}
+
 	def := m.Defense()
-	if src.Magic {
+	if dmg.Type == DamageMagic {
 		def = m.stats.MagicDefense
 	}
-	if dmg > 0 {
-		dmg -= def
-		if dmg <= 0 {
-			dmg = 1
+	hit := dmg.Dice.Roll()
+	if dmg.Type == DamageHealing {
+		hit = -hit
+	}
+	if hit > 0 {
+		hit -= def
+		if hit <= 0 {
+			hit = 1
 		}
 	}
 
-	m.hp -= dmg
+	m.hp -= hit
 	if m.hp > m.maxHP {
 		m.hp = m.maxHP
 	}
@@ -325,7 +359,7 @@ func (m *Mob) Damage(w *World, dmg int, src Weapon) int {
 	}
 
 	m.refreshStats(w)
-	return dmg
+	return hit
 }
 
 func (m *Mob) ApplyBuff(w *World, buff *Buff, src *Mob) {
@@ -338,8 +372,8 @@ func (m *Mob) ApplyBuff(w *World, buff *Buff, src *Mob) {
 					return
 				case UniqueReplace:
 					delete(m.buffs, existing)
-					if existing.Remove != nil {
-						existing.Remove(w, m)
+					if existing.OnRemove != nil {
+						existing.OnRemove(w, m)
 					}
 				}
 			}
@@ -347,8 +381,8 @@ func (m *Mob) ApplyBuff(w *World, buff *Buff, src *Mob) {
 	}
 
 	m.buffs[buff] = struct{}{}
-	if buff.Apply != nil {
-		buff.Apply(w, m, src)
+	if buff.OnApply != nil {
+		buff.OnApply(w, m, src)
 	}
 	m.refreshStats(w)
 }
@@ -372,7 +406,6 @@ func (m *Mob) refreshStats(w *World) {
 		stats.BGs = append([]int{ColorDarkRed}, stats.BGs...)
 		m.bgIdx = 0
 	}
-	fmt.Println("BGS:", m.Name(), stats.BGs)
 	m.stats = stats
 }
 

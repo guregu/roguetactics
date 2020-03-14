@@ -238,7 +238,7 @@ func (w *World) NextTurn() {
 		top.TakeTurn(w)
 		if m, ok := top.(*Mob); ok {
 			if !m.CanAct() && !m.CanMove() {
-				m.FinishTurn(false, false)
+				m.FinishTurn(w, false, false)
 				w.NextTurn()
 			}
 		}
@@ -396,15 +396,11 @@ func (w *World) Add(obj Object) {
 }
 
 func (w *World) Attack(target *Mob, source *Mob, weapon Weapon) {
-	dmg := weapon.RollDamage()
-	if weapon.DamageType == DamageHealing {
-		dmg = -dmg
-	}
-	if weapon.DamageType != DamageNone {
-		dmg = target.Damage(w, dmg, weapon)
+	if weapon.Damage.Type != DamageNone {
+		dmg := target.Damage(w, weapon.Damage)
 		msg := fmt.Sprintf("%s attacked %s with %s for %d damage!", source.Name(), target.Name(), weapon.Name, dmg)
 		if dmg < 0 {
-			msg = fmt.Sprintf("%s heals %s with %s for %d HP!", source.Name(), target.Name(), weapon.Name, -dmg)
+			msg = fmt.Sprintf("%s healed %s with %s for %d HP!", source.Name(), target.Name(), weapon.Name, -dmg)
 		}
 		w.Broadcast(msg)
 	}
@@ -671,7 +667,7 @@ func (ai *EnemyAIState) Run(w *World) bool {
 			w.push <- &MoveState{Obj: ai.self, Path: path}
 			return false
 		}
-		ai.self.FinishTurn(ai.moved, ai.acted)
+		ai.self.FinishTurn(w, ai.moved, ai.acted)
 		w.NextTurn()
 		return true
 	}
@@ -698,7 +694,7 @@ func (ai *EnemyAIState) Run(w *World) bool {
 		ai.acted = true
 	}
 
-	ai.self.FinishTurn(ai.moved, ai.acted)
+	ai.self.FinishTurn(w, ai.moved, ai.acted)
 	w.pushBottom <- NextTurnState{}
 	return true
 }

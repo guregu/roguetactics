@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	TabKey        = 9
 	EnterKey      = 13
 	EscKey        = 27
 	BackspaceKey  = 127

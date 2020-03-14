@@ -110,7 +110,7 @@ func (gw *BonusWindow) Render(scr [][]Glyph) {
 			fmt.Fprint(w, "\t")
 		}
 		if !unit.Dead() {
-			fmt.Fprintf(w, "%s (%s)", unit.Weapon().Name, unit.Weapon().Damage)
+			fmt.Fprintf(w, "%s (%s)", unit.Weapon().Name, unit.Weapon().Damage.Dice.String())
 		}
 	}
 	fmt.Fprintln(w)
@@ -192,9 +192,9 @@ func (gw *BonusWindow) Input(input string) bool {
 
 	if len(input) == 1 {
 		switch input[0] {
-		case 27, 'n': // ESC
+		case EscKey, 'n':
 			gw.choice = -1
-		case 13, 'y': // ENTER
+		case EnterKey, 'y':
 			if gw.choice >= 0 && gw.choice < len(gw.Bonuses) {
 				gw.World.ApplyBonus(gw.Bonuses[gw.choice], gw.Team.Units[gw.choice])
 				gw.World.StartBattle(gw.World.level + 1)

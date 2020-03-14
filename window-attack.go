@@ -50,12 +50,12 @@ func (mw *AttackWindow) Render(scr [][]Glyph) {
 
 	if target, ok := m.TileAt(cursor.x, cursor.y).Top().(*Mob); ok {
 		var dmginfo string
-		if wep.Damage != "" {
+		if wep.Damage.IsValid() {
 			dmgname := "damage"
-			if wep.DamageType == DamageHealing {
+			if wep.Damage.Type == DamageHealing {
 				dmgname = "heal"
 			}
-			dmginfo = fmt.Sprintf(" (%s: %s)", dmgname, wep.Damage)
+			dmginfo = fmt.Sprintf(" (%s: %s)", dmgname, wep.Damage.Dice.String())
 		}
 		status := append(append(GlyphsOf(" └"), target.StatusLine(true)...), GlyphsOf(dmginfo)...)
 		copyGlyphs(scr[len(scr)-2], status, true)
@@ -70,7 +70,7 @@ func (mw *AttackWindow) Input(input string) bool {
 	}
 	if len(input) == 1 {
 		switch input[0] {
-		case EscKey: // ESC
+		case EscKey:
 			if mw.callback != nil {
 				mw.callback(false)
 			}

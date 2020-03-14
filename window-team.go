@@ -109,7 +109,7 @@ func (gw *TeamWindow) Render(scr [][]Glyph) {
 		} else {
 			fmt.Fprint(w, "\t")
 		}
-		fmt.Fprintf(w, "%s (%s)", unit.Weapon().Name, unit.Weapon().Damage)
+		fmt.Fprintf(w, "%s (%s)", unit.Weapon().Name, unit.Weapon().Damage.Dice.String())
 	}
 	fmt.Fprintln(w)
 
@@ -167,9 +167,9 @@ func (gw *TeamWindow) Input(input string) bool {
 
 	if len(input) == 1 {
 		switch input[0] {
-		case 27, 13: // ESC
+		case EscKey, EnterKey:
 			gw.done = true
-		case 9: // tab
+		case TabKey: // tab
 			if gw.Team.ID == PlayerTeam {
 				gw.Team = gw.World.battle.Teams[AITeam]
 			} else {

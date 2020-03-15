@@ -203,6 +203,7 @@ func (gw *GameWindow) canDoSomething() bool {
 }
 
 func (gw *GameWindow) Render(scr [][]Glyph) {
+	// render map
 	m := gw.Map
 nextline:
 	for y := 0; y < len(m.Tiles); y++ {
@@ -217,6 +218,20 @@ nextline:
 			scr[y][x] = tile.Glyph()
 		}
 	}
+
+	// render party status
+	for i := 0; i < len(gw.World.player.Units); i++ {
+		unit := gw.World.player.Units[i]
+		name := unit.NameColored()
+		if gw.World.Up() == unit {
+			ApplyStyle(name, StyleUnderline)
+		}
+		copyGlyphs(scr[1+i*4], name, false)
+		copyString(scr[1+i*4+1], string(unit.Class()), false)
+		copyGlyphs(scr[1+i*4+2], Concat("HP: ", unit.HPText()), false)
+	}
+
+	// render combat log
 	const chatLines = 4
 	const bottomUILines = 3 // target info, help etc
 	for i := 0; i < chatLines; i++ {
@@ -228,6 +243,8 @@ nextline:
 			copyGlyphs(scr[y], gw.Msgs[n], true)
 		}
 	}
+
+	// render current unit status
 	up := gw.World.Up()
 	if up != nil {
 		if mob, ok := up.(*Mob); ok {
@@ -246,6 +263,7 @@ nextline:
 		return
 	}
 
+	// render help bar
 	var helpBar string
 	pushHelp := func(str string) {
 		if len(helpBar) > 0 {

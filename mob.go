@@ -478,27 +478,30 @@ func (mob *Mob) StatusLine(short bool) []Glyph {
 		}
 	}
 
-	var hpcolor Color
-	switch {
-	case mob.HP() == mob.MaxHP():
-		hpcolor = ColorGreen
-	case mob.HP() <= mob.MaxHP()/4:
-		hpcolor = ColorRed
-	case mob.HP() <= mob.MaxHP()/2:
-		hpcolor = ColorOlive
-	}
-	hptext := GlyphsOf(fmt.Sprintf("%d/%d", mob.HP(), mob.MaxHP()), StyleFG(hpcolor))
-
 	return Concat(
 		"[", mob.Glyph(), "] ",
 		mobname,
-		" (HP: ", hptext,
+		" (HP: ", mob.HPText(),
 		mp,
 		", ", speed, ": ", mob.Speed(),
 		", CT: ", mob.CT(),
 		buffnames,
 		")",
 	)
+}
+
+func (m *Mob) HPText() []Glyph {
+	hp, maxhp := m.HP(), m.MaxHP()
+	var hpcolor Color
+	switch {
+	case hp == maxhp:
+		hpcolor = ColorGreen
+	case hp <= maxhp/4:
+		hpcolor = ColorRed
+	case hp <= maxhp/2:
+		hpcolor = ColorOlive
+	}
+	return GlyphsOf(fmt.Sprintf("%d/%d", hp, maxhp), StyleFG(hpcolor))
 }
 
 var _ Ticker = &Mob{}

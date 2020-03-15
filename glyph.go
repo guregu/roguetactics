@@ -174,6 +174,15 @@ func Concat(args ...interface{}) []Glyph {
 	return result
 }
 
+func ApplyStyle(glyphs []Glyph, styles ...Style) {
+	for i := range glyphs {
+		g := &glyphs[i]
+		for _, style := range styles {
+			style(g)
+		}
+	}
+}
+
 func ColorDamage(dmg int) []Glyph {
 	color := ColorDarkOrange
 	if dmg < 0 {

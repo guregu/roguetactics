@@ -31,6 +31,8 @@ func (mw *TitleWindow) Render(scr [][]Glyph) {
 	copyString(scr[15], " * Then press ENTER to start a new game!", true)
 	copyString(scr[16], " ↓ Read the guide on this page below to learn how to play.", true)
 
+	copyString(scr[18], " (Note to 7DRL judges: see description for original 7DRL version)", true)
+
 	copyStringAlignRight(scr[len(scr)-2], "Twitter: @kawaiisolutions ")
 	copyString(scr[len(scr)-1], "Press ENTER to start!", false)
 	for i := 0; i < len("Press ENTER to start!"); i++ {

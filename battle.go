@@ -35,6 +35,13 @@ func newBattle(level int, playerTeam Team) Battle {
 	}
 }
 
+var playerTeamColors = []Color{
+	Color256(27),
+	Color256(44),
+	Color256(6),
+	Color256(105),
+}
+
 func generatePlayerTeam() Team {
 	team := Team{
 		ID: PlayerTeam,
@@ -58,7 +65,7 @@ func generatePlayerTeam() Team {
 
 		unit := generateUnit(class)
 		unit.name = PlayerNames[names[i]]
-		unit.glyph.FG = ColorBlue
+		unit.glyph.FG = playerTeamColors[i]
 
 		team.Units = append(team.Units, unit)
 	}

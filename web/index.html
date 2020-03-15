@@ -7,10 +7,10 @@
 	<script src="https://unpkg.com/xterm"></script>
 	<script src="wasm_exec.js"></script>
 </head>
-<body>
+<body style="margin: 0; background: #afbfd2;">
 	<main>
-		<div id="terminal"></div>
-		<div>
+		<div id="terminal" style="padding: 6px; background: black;"></div>
+		<div style="padding: 6px;">
 			<h3>How to Play</h3>
 			This game is a "roguelite" take on tactics RPGs such as Final Fantasy Tactics.<br>
 			You start with a randomly generated team of 4 adventurers.<br>
@@ -74,6 +74,14 @@
 	        				// WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((result) => {
 	        				// 	go.run(result.instance);
 	        				// });
+	        	
+	        	var filesize = null;
+	        	var fsxhr = new XMLHttpRequest();
+	        	fsxhr.open("HEAD", "main.wasm");
+	        	fsxhr.onload = function() {
+	        		filesize = Number(fsxhr.getResponseHeader('Content-Length')) * 4;
+	        	}
+	        	fsxhr.send(null);
 
     			var xhr = new XMLHttpRequest();
     			xhr.responseType = "arraybuffer";
@@ -81,8 +89,12 @@
 				var lastprogress = 0;
 				xhr.onprogress = function(evt) {
 					var prog = Math.floor(event.loaded/1000);
+					var msg = "\r\nDownloaded: " + prog + "KB";
+					if (filesize) {
+						msg += " " + Math.floor(event.loaded/filesize * 100) + "%";
+					}
 					if (prog > lastprogress) {
-						term.write("\r\nDownloaded: " + prog + "KB")
+						term.write(msg);
 						lastprogress = prog;
 					}
 				}

@@ -1,7 +1,6 @@
 package main
 
 import (
-	// "log"
 	"fmt"
 	"sort"
 )
@@ -124,6 +123,10 @@ func (m *Mob) Name() string {
 	return m.name
 }
 
+func (m *Mob) NameColored() []Glyph {
+	return GlyphsOf(m.Name(), StyleFG(m.Glyph().FG))
+}
+
 func (m *Mob) Team() int {
 	return m.team
 }
@@ -164,7 +167,12 @@ func (m *Mob) TakeTurn(w *World) {
 		if buff.DoT.IsValid() && buff.DoT.Type == DamageHealing {
 			dmg := m.Damage(w, buff.DoT)
 			if dmg != 0 {
-				w.Broadcast(fmt.Sprintf("%s was healed by %s for %d.", m.Name(), buff.Name, -dmg))
+				w.Broadcast(
+					m.NameColored(),
+					GlyphsOf(" was healed by "+buff.Name+" for "),
+					ColorDamage(dmg),
+					GlyphsOf(" HP."),
+				)
 			}
 		}
 	}
@@ -201,13 +209,21 @@ func (m *Mob) FinishTurn(w *World, moved, acted bool) {
 			if buff.DoT.IsValid() && buff.DoT.Type != DamageHealing {
 				dmg := m.Damage(w, buff.DoT)
 				if dmg != 0 {
-					w.Broadcast(fmt.Sprintf("%s was damaged by %s for %d.", m.Name(), buff.Name, dmg))
+					w.Broadcast(
+						m.NameColored(),
+						GlyphsOf(" was damaged by "+buff.Name+" for "),
+						ColorDamage(dmg),
+						GlyphsOf(" HP."),
+					)
 				}
 			}
 		}
 	}
 	if !dead && m.Dead() {
-		w.Broadcast(fmt.Sprintf("%s died.", m.Name()))
+		w.Broadcast(
+			m.NameColored(),
+			GlyphsOf(" died."),
+		)
 	}
 
 	if moved && acted {
@@ -368,7 +384,7 @@ func (m *Mob) ApplyBuff(w *World, buff *Buff, src *Mob) {
 			if buff.Name == existing.Name {
 				switch buff.Uniqueness {
 				case Unique:
-					w.Broadcast("It wasn't effective.")
+					w.BroadcastString("It wasn't effective.")
 					return
 				case UniqueReplace:
 					delete(m.buffs, existing)

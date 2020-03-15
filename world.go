@@ -266,9 +266,16 @@ func (w *World) sortWaitlist() {
 	})
 }
 
-func (w *World) Broadcast(msg string) {
+func (w *World) Broadcast(args ...interface{}) {
+	msg := Concat(args...)
 	for sesh := range w.seshes {
 		sesh.Send(msg)
+	}
+}
+
+func (w *World) BroadcastString(msg string) {
+	for sesh := range w.seshes {
+		sesh.Send(GlyphsOf(msg))
 	}
 }
 
@@ -398,17 +405,38 @@ func (w *World) Add(obj Object) {
 func (w *World) Attack(target *Mob, source *Mob, weapon Weapon) {
 	if weapon.Damage.Type != DamageNone {
 		dmg := target.Damage(w, weapon.Damage)
-		msg := fmt.Sprintf("%s attacked %s with %s for %d damage!", source.Name(), target.Name(), weapon.Name, dmg)
 		if dmg < 0 {
-			msg = fmt.Sprintf("%s healed %s with %s for %d HP!", source.Name(), target.Name(), weapon.Name, -dmg)
+			w.Broadcast(Concat(
+				source.NameColored(),
+				" healed ",
+				target.NameColored(),
+				" with ",
+				weapon.Name,
+				" for ",
+				ColorDamage(dmg),
+				" HP!",
+			))
+		} else {
+			w.Broadcast(Concat(
+				source.NameColored(),
+				" attacked ",
+				target.NameColored(),
+				" with ",
+				weapon.Name,
+				" for ",
+				ColorDamage(dmg),
+				" damage!",
+			))
 		}
-		w.Broadcast(msg)
 	}
 	if weapon.OnHit != nil {
 		weapon.OnHit(w, source, target)
 	}
 	if target.Dead() {
-		w.Broadcast(fmt.Sprintf("%s died.", target.Name()))
+		w.Broadcast(Concat(
+			target.NameColored(),
+			" died.",
+		))
 	}
 }
 

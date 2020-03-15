@@ -7,9 +7,7 @@ import (
 	"strings"
 	"time"
 
-	// "github.com/davecgh/go-spew/spew"
 	"github.com/gliderlabs/ssh"
-	// "github.com/kr/pty"
 )
 
 const (
@@ -134,7 +132,7 @@ func (sesh *Sesh) renderCursor(coords Coords) {
 	io.WriteString(sesh.ssh, fmt.Sprintf("\033[%d;%dH", coords.y+1, coords.x+1))
 }
 
-func (sesh *Sesh) Send(msg string) {
+func (sesh *Sesh) Send(msg []Glyph) {
 	sesh.win.Msgs = append(sesh.win.Msgs, msg)
 }
 

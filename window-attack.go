@@ -146,7 +146,10 @@ func (mw *AttackWindow) Click(click Coords) bool {
 			return true
 		}
 		if blocked {
-			mw.Sesh.Send(fmt.Sprintf("%s's attack is obstructed.", mw.Char.Name()))
+			mw.Sesh.Send(Concat(
+				mw.Char.NameColored(),
+				"'s attack is obstructed.",
+			))
 		} else {
 			canAttack = true
 			targets = []*Mob{target}

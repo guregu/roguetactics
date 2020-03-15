@@ -163,14 +163,24 @@ var spellTaunt = Weapon{
 	HitGlyph:  &Glyph{Rune: '!', SGR: SGR{FG: ColorDarkRed}},
 	OnHit: func(w *World, source *Mob, target *Mob) {
 		if source.Team() == target.Team() {
-			w.Broadcast(source.Name() + " tries to taunt " + target.Name() + ", but they laugh instead.")
+			w.Broadcast(Concat(
+				source.NameColored(),
+				" tries to taunt ",
+				target.NameColored(),
+				", but they laugh instead.",
+			))
 			return
 		}
 		buff := newBuff("taunt", UniqueReplace, -1, 0)
 		buff.BG = Color256(166)
 		buff.OnApply = func(w *World, m *Mob, src *Mob) {
 			m.tauntedBy = src
-			w.Broadcast(src.Name() + " taunted " + m.Name() + ".")
+			w.Broadcast(Concat(
+				src.NameColored(),
+				" taunted ",
+				m.NameColored(),
+				".",
+			))
 		}
 		buff.OnTakeTurn = func(w *World, m *Mob) {
 			if m.tauntedBy != nil && m.tauntedBy.Dead() {
@@ -198,13 +208,19 @@ var spellCripple = Weapon{
 		buff := newBuff("crippled", Unique, life, 0.1)
 		buff.BG = Color256(237)
 		buff.OnApply = func(w *World, m *Mob, src *Mob) {
-			w.Broadcast(m.Name() + " can no longer move!")
+			w.Broadcast(Concat(
+				m.NameColored(),
+				" can no longer move!",
+			))
 		}
 		buff.Affect = func(w *World, m *Mob, stats *Stats) {
 			stats.Crippled = true
 		}
 		buff.OnRemove = func(w *World, m *Mob) {
-			w.Broadcast(m.Name() + " can move again!")
+			w.Broadcast(Concat(
+				m.NameColored(),
+				" can move again!",
+			))
 		}
 		target.ApplyBuff(w, buff, source)
 	},
@@ -228,7 +244,12 @@ var spellPoisonShot = Weapon{
 			Dice: dicey.MustParse("1d4+1"),
 		}
 		buff.OnApply = func(w *World, m *Mob, src *Mob) {
-			w.Broadcast(m.Name() + " is poisoned!")
+			w.Broadcast(Concat(
+				m.NameColored(),
+				" is ",
+				GlyphsOf("poisoned", StyleFG(ColorDiarrhea)),
+				"!",
+			))
 		}
 		buff.OnRemove = func(w *World, m *Mob) {
 			// w.Broadcast(m.Name() + " ")

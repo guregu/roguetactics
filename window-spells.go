@@ -37,7 +37,7 @@ func (gw *SpellsWindow) Input(input string) bool {
 			if i >= 0 && i < len(spells) {
 				if spells[i].MPCost > gw.Char.MP() {
 					gw.Sesh.Bell()
-					gw.Sesh.Send(fmt.Sprintf("Not enough MP to cast %s.", spells[i].Name))
+					gw.Sesh.Send(GlyphsOf(fmt.Sprintf("Not enough MP to cast %s.", spells[i].Name)))
 					return true
 				}
 				gw.callback(i)

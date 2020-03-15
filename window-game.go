@@ -7,7 +7,7 @@ import (
 type GameWindow struct {
 	Sesh  *Sesh
 	World *World
-	Msgs  []string
+	Msgs  [][]Glyph
 	Team  int
 	Map   *Map
 
@@ -218,13 +218,14 @@ nextline:
 		}
 	}
 	const chatLines = 4
+	const bottomUILines = 3 // target info, help etc
 	for i := 0; i < chatLines; i++ {
 		n := len(gw.Msgs) - chatLines + i
-		y := len(scr) - chatLines - 3 + i
+		y := len(scr) - chatLines - bottomUILines + i
 		if n < 0 || n > len(gw.Msgs) {
 			copyString(scr[y], "", true)
 		} else {
-			copyString(scr[y], gw.Msgs[n], true)
+			copyGlyphs(scr[y], gw.Msgs[n], true)
 		}
 	}
 	up := gw.World.Up()
@@ -299,8 +300,6 @@ func (gw *GameWindow) Click(click Coords) bool {
 			return gw.showAttack()
 		}
 	}
-
-	// gw.Msgs = append(gw.Msgs, fmt.Sprintf("Clicked: (%d,%d)", x, y))
 	return true
 }
 

@@ -186,7 +186,7 @@ func ApplyStyle(glyphs []Glyph, styles ...Style) {
 func ColorDamage(dmg int) []Glyph {
 	color := ColorDarkOrange
 	if dmg < 0 {
-		color = ColorBrightGreen
+		color = ColorGreen
 		dmg = -dmg
 	}
 	return GlyphsOf(strconv.Itoa(dmg), StyleFG(color))

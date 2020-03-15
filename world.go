@@ -406,7 +406,7 @@ func (w *World) Attack(target *Mob, source *Mob, weapon Weapon) {
 	if weapon.Damage.Type != DamageNone {
 		dmg := target.Damage(w, weapon.Damage)
 		if dmg < 0 {
-			w.Broadcast(Concat(
+			w.Broadcast(
 				source.NameColored(),
 				" healed ",
 				target.NameColored(),
@@ -415,9 +415,9 @@ func (w *World) Attack(target *Mob, source *Mob, weapon Weapon) {
 				" for ",
 				ColorDamage(dmg),
 				" HP!",
-			))
+			)
 		} else {
-			w.Broadcast(Concat(
+			w.Broadcast(
 				source.NameColored(),
 				" attacked ",
 				target.NameColored(),
@@ -426,17 +426,17 @@ func (w *World) Attack(target *Mob, source *Mob, weapon Weapon) {
 				" for ",
 				ColorDamage(dmg),
 				" damage!",
-			))
+			)
 		}
 	}
 	if weapon.OnHit != nil {
 		weapon.OnHit(w, source, target)
 	}
 	if target.Dead() {
-		w.Broadcast(Concat(
+		w.Broadcast(
 			target.NameColored(),
 			" died.",
-		))
+		)
 	}
 }
 

@@ -30,7 +30,11 @@ func (mw *FarlookWindow) Render(scr [][]Glyph) {
 	} else {
 		name := "floor"
 		if tile.Collides {
-			name = "wall"
+			if tile.Ground.Rune == ' ' {
+				name = "empty space"
+			} else {
+				name = "wall"
+			}
 		}
 		status := GlyphsOf(fmt.Sprintf(arrow+"[ ] %s", name))
 		status[3] = tile.Glyph()

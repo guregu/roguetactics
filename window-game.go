@@ -77,7 +77,7 @@ func (gw *GameWindow) Input(in string) bool {
 			Team:  gw.World.battle.Teams[PlayerTeam],
 		})
 	case "W":
-		// gw.World.apply <- ForceWinActionDEBUG{}
+		// gw.World.winBattle()
 	}
 
 	return true
@@ -238,7 +238,7 @@ nextline:
 	copyString(scr[len(scr)-2], "", true)
 
 	turnInfo := fmt.Sprintf("[Turn: %d]", gw.World.turn)
-	copyStringAlignRight(scr[len(scr)-3], turnInfo)
+	copyStringAlignRight(scr[0], turnInfo)
 
 	if gw.World.Busy() {
 		helpBar := "Busy..."

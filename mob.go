@@ -78,11 +78,12 @@ type Mob struct {
 }
 
 type Stats struct {
-	Move         int    // move range
-	Speed        int    // how much to increment CT
-	Defense      int    // physical defense
-	MagicDefense int    // magical defense
-	Crippled     bool   // can't move
+	Move         int // move range
+	Speed        int // how much to increment CT
+	Defense      int // physical defense
+	MagicDefense int // magical defense
+	CantMove     bool
+	CantAct      bool
 	BGs          Colors // glyph BGs to cycle through
 }
 
@@ -253,7 +254,7 @@ func (m *Mob) Move(loc Loc) {
 }
 
 func (m *Mob) MoveRange() int {
-	if m.stats.Crippled {
+	if m.stats.CantMove {
 		return 0
 	}
 	return m.stats.Move
@@ -335,7 +336,7 @@ func (m *Mob) Dead() bool {
 }
 
 func (m *Mob) CanAct() bool {
-	return !m.Dead()
+	return !m.stats.CantAct && !m.Dead()
 }
 
 func (m *Mob) CanMove() bool {
@@ -448,18 +449,56 @@ func (mob *Mob) StatusLine(short bool) []Glyph {
 			mobname += " the " + string(mob.Class())
 		}
 	}
+
 	mp := fmt.Sprintf(", MP: %d/%d", mob.MP(), mob.MaxMP())
 	if mob.MaxMP() == 0 {
 		mp = ""
 	}
+
 	speed := "Speed"
 	if short {
 		speed = "S"
 	}
-	status := fmt.Sprintf("[ ] %s (HP: %d/%d%s, %s: %d, CT: %d)", mobname, mob.HP(), mob.MaxHP(), mp, speed, mob.Speed(), mob.CT())
-	glyphs := GlyphsOf(status)
-	glyphs[1] = mob.Glyph()
-	return glyphs
+
+	var buffs []*Buff
+	for buff := range mob.buffs {
+		buffs = append(buffs, buff)
+	}
+	sort.Slice(buffs, func(i, j int) bool {
+		return buffs[i].Name < buffs[j].Name
+	})
+	var buffnames []Glyph
+	if len(buffs) != 0 {
+		buffnames = GlyphsOf("; ")
+		for i := 0; i < len(buffs); i++ {
+			if i != 0 {
+				buffnames = Concat(buffnames, ", ")
+			}
+			buffnames = Concat(buffnames, GlyphsOf(buffs[i].Name, StyleFG(buffs[i].BG)))
+		}
+	}
+
+	var hpcolor Color
+	switch {
+	case mob.HP() == mob.MaxHP():
+		hpcolor = ColorGreen
+	case mob.HP() <= mob.MaxHP()/4:
+		hpcolor = ColorRed
+	case mob.HP() <= mob.MaxHP()/2:
+		hpcolor = ColorOlive
+	}
+	hptext := GlyphsOf(fmt.Sprintf("%d/%d", mob.HP(), mob.MaxHP()), StyleFG(hpcolor))
+
+	return Concat(
+		"[", mob.Glyph(), "] ",
+		mobname,
+		" (HP: ", hptext,
+		mp,
+		", ", speed, ": ", mob.Speed(),
+		", CT: ", mob.CT(),
+		buffnames,
+		")",
+	)
 }
 
 var _ Ticker = &Mob{}

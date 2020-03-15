@@ -205,7 +205,7 @@ var spellCripple = Weapon{
 	// HitGlyph:   &Glyph{Rune: 'x', SGR: SGR{FG: ColorDarkRed}},
 	OnHit: func(w *World, source *Mob, target *Mob) {
 		life := rand.Intn(6) + 2
-		buff := newBuff("crippled", Unique, life, 0.1)
+		buff := newBuff("cripple", Unique, life, 0.1)
 		buff.BG = Color256(237)
 		buff.OnApply = func(w *World, m *Mob, src *Mob) {
 			w.Broadcast(
@@ -214,7 +214,7 @@ var spellCripple = Weapon{
 			)
 		}
 		buff.Affect = func(w *World, m *Mob, stats *Stats) {
-			stats.Crippled = true
+			stats.CantMove = true
 		}
 		buff.OnRemove = func(w *World, m *Mob) {
 			w.Broadcast(

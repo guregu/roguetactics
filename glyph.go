@@ -152,7 +152,7 @@ func ConcatGlyphs(strs ...[]Glyph) []Glyph {
 }
 
 // Concat concatenates args into a glyph string.
-// Arguments must be []Glyph, Glyph, string, or rune.
+// Arguments must be []Glyph, Glyph, string, rune, or int.
 func Concat(args ...interface{}) []Glyph {
 	var result []Glyph
 	for _, arg := range args {
@@ -165,6 +165,8 @@ func Concat(args ...interface{}) []Glyph {
 			result = append(result, GlyphsOf(x)...)
 		case rune:
 			result = append(result, GlyphOf(x))
+		case int:
+			result = append(result, GlyphsOf(strconv.Itoa(x))...)
 		default:
 			log.Printf("invalid type for concat: %T (%v)", x, x)
 		}
@@ -184,6 +186,7 @@ func ColorDamage(dmg int) []Glyph {
 const (
 	ColorBlack        Color256 = 0
 	ColorRed          Color256 = 1
+	ColorGreen        Color256 = 2
 	ColorOlive        Color256 = 3
 	ColorBlue         Color256 = 4
 	ColorBrightRed    Color256 = 9

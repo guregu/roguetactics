@@ -267,6 +267,7 @@ func (w *World) sortWaitlist() {
 }
 
 func (w *World) Broadcast(args ...interface{}) {
+	args = append([]interface{}{"· "}, args...)
 	msg := Concat(args...)
 	for sesh := range w.seshes {
 		sesh.Send(msg)
@@ -275,7 +276,7 @@ func (w *World) Broadcast(args ...interface{}) {
 
 func (w *World) BroadcastString(msg string) {
 	for sesh := range w.seshes {
-		sesh.Send(GlyphsOf(msg))
+		sesh.Send(GlyphsOf("· " + msg))
 	}
 }
 

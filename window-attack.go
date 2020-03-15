@@ -22,7 +22,7 @@ func (mw *AttackWindow) Render(scr [][]Glyph) {
 	m := mw.World.Map(loc.Map)
 	wep := mw.Weapon
 	attackRange := wep.Range
-	highlightRange(scr, loc, m, mw.Self, attackRange, wep.Targeting, 130)
+	highlightRange(scr, loc, m, mw.Self, attackRange, wep.Targeting, Color256(130))
 
 	helpheader := "Attack: "
 	if mw.Weapon.Magic {
@@ -179,7 +179,7 @@ func (mw *AttackWindow) close() {
 	mw.done = true
 }
 
-func highlightRange(scr [][]Glyph, loc Loc, m *Map, selfOK bool, size int, targeting TargetingType, bgColor int) {
+func highlightRange(scr [][]Glyph, loc Loc, m *Map, selfOK bool, size int, targeting TargetingType, bgColor Color) {
 	for y := loc.Y - size; y <= loc.Y+size; y++ {
 		if y < 0 {
 			continue

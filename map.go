@@ -27,11 +27,11 @@ type MapMeta struct {
 	Width  int
 	Height int
 	Glyphs map[string]struct {
-		FG      int
-		BG      int
+		FG      Color256
+		BG      Color256
 		Collide bool
 	}
-	BG [][]int
+	BG [][]Color256
 
 	Teams       int
 	SpawnPoints [][][2]int
@@ -277,7 +277,7 @@ loop:
 func (t *Tile) Glyph() Glyph {
 	if top := t.Top(); top != nil {
 		g := top.Glyph()
-		if g.BG == 0 && t.Ground.BG != 0 {
+		if g.BG == nil && t.Ground.BG != nil {
 			g.BG = t.Ground.BG
 		}
 		return g

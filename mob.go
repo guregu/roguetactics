@@ -79,12 +79,12 @@ type Mob struct {
 }
 
 type Stats struct {
-	Move         int   // move range
-	Speed        int   // how much to increment CT
-	Defense      int   // physical defense
-	MagicDefense int   // magical defense
-	Crippled     bool  // can't move
-	BGs          []int // glyph BGs to cycle through
+	Move         int    // move range
+	Speed        int    // how much to increment CT
+	Defense      int    // physical defense
+	MagicDefense int    // magical defense
+	Crippled     bool   // can't move
+	BGs          Colors // glyph BGs to cycle through
 }
 
 func (m *Mob) Reset(w *World) {
@@ -396,14 +396,14 @@ func (m *Mob) refreshStats(w *World) {
 		if buff.Affect != nil {
 			buff.Affect(w, m, &stats)
 		}
-		if buff.BG != 0 {
+		if buff.BG != nil {
 			stats.BGs = append(stats.BGs, buff.BG)
 		}
 	}
-	sort.Ints(stats.BGs)
+	sort.Sort(stats.BGs)
 	// do this after sorting so that players get immediate feedback for critical damage
 	if m.HP() <= m.MaxHP()/4 {
-		stats.BGs = append([]int{ColorDarkRed}, stats.BGs...)
+		stats.BGs = append([]Color{ColorDarkRed}, stats.BGs...)
 		m.bgIdx = 0
 	}
 	m.stats = stats

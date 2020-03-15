@@ -167,7 +167,7 @@ var spellTaunt = Weapon{
 			return
 		}
 		buff := newBuff("taunt", UniqueReplace, -1, 0)
-		buff.BG = 166
+		buff.BG = Color256(166)
 		buff.OnApply = func(w *World, m *Mob, src *Mob) {
 			m.tauntedBy = src
 			w.Broadcast(src.Name() + " taunted " + m.Name() + ".")
@@ -196,7 +196,7 @@ var spellCripple = Weapon{
 	OnHit: func(w *World, source *Mob, target *Mob) {
 		life := rand.Intn(6) + 2
 		buff := newBuff("crippled", Unique, life, 0.1)
-		buff.BG = 237
+		buff.BG = Color256(237)
 		buff.OnApply = func(w *World, m *Mob, src *Mob) {
 			w.Broadcast(m.Name() + " can no longer move!")
 		}

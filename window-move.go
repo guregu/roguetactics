@@ -51,7 +51,7 @@ func (mw *MoveWindow) Render(scr [][]Glyph) {
 					mw.pathcache[tile] = path
 				}
 				if path != nil && len(path) <= mw.Range {
-					scr[y][x].BG = 17
+					scr[y][x].BG = ColorNavy
 				}
 			}
 		}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	// "strconv"
 	"strings"
 )
 
@@ -12,71 +11,14 @@ const (
 	cursorTo00  = "\033[1;1H"
 )
 
-type Glyph struct {
-	Rune rune
-	SGR
+type Window interface {
+	Render(scr [][]Glyph)
+	Cursor() Coords
+	Input(string) bool
+	Click(coords Coords) bool
+	Mouseover(coords Coords) bool
+	ShouldRemove() bool
 }
-
-func GlyphOf(r rune) Glyph {
-	return Glyph{Rune: r}
-}
-
-func GlyphsOf(str string) []Glyph {
-	glyphs := make([]Glyph, 0, len(str))
-	for _, r := range str {
-		glyphs = append(glyphs, GlyphOf(r))
-	}
-	return glyphs
-}
-
-type SGR struct {
-	FG        int
-	BG        int
-	Bold      bool
-	Underline bool
-	Blink     bool
-	Reverse   bool
-}
-
-func (g Glyph) args() []string {
-	var args []string
-	if g.FG != 0 {
-		// TODO non 256 support
-		args = append(args, fmt.Sprintf("38;5;%d", g.FG))
-		// args = append(args, strconv.Itoa(g.FG))
-	}
-	if g.BG != 0 {
-		args = append(args, fmt.Sprintf("48;5;%d", g.BG))
-		// args = append(args, strconv.Itoa(g.BG))
-	}
-	if g.Bold {
-		args = append(args, "1")
-	}
-	if g.Underline {
-		args = append(args, "4")
-	}
-	if g.Blink {
-		args = append(args, "5")
-	}
-	if g.Reverse {
-		args = append(args, "7")
-	}
-	return args
-}
-
-func (g Glyph) String() string {
-	if g.FG == 0 && g.BG == 0 && !g.Reverse && !g.Bold && !g.Blink && !g.Underline {
-		return resetSGR + string(g.Rune)
-	}
-	return "\033[0;" + strings.Join(g.args(), ";") + "m" + string(g.Rune)
-}
-
-// func (g Glyph) StringAfter(other Glyph) string {
-// 	if g.SGR == other.SGR {
-// 		return string(g.Rune)
-// 	}
-// 	return g.String()
-// }
 
 func ansiCursorTo(x, y int) string {
 	return fmt.Sprintf("\033[%d;%dH", y+1, x+1)
@@ -123,7 +65,7 @@ func (d *Display) full() string {
 
 func (d *Display) diff() string {
 	var buf string
-	sgr := SGR{FG: -1}
+	sgr := SGR{FG: InvalidColor{}}
 	for y := 0; y < len(d.next); y++ {
 		for x := 0; x < len(d.next[y]); x++ {
 			if d.prev[y][x] != d.next[y][x] {
@@ -147,26 +89,7 @@ func (d *Display) nextFrame() [][]Glyph {
 	return d.next
 }
 
-type Window interface {
-	Render(scr [][]Glyph)
-	Cursor() Coords
-	Input(string) bool
-	Click(coords Coords) bool
-	Mouseover(coords Coords) bool
-	ShouldRemove() bool
-}
-
-func (gw *GameWindow) Cursor() Coords {
-	up := gw.World.Up()
-	m, ok := up.(*Mob)
-	if !ok {
-		return OriginCoords
-	}
-	loc := m.Loc()
-	return loc.AsCoords()
-}
-
-func drawCenteredBox(scr [][]Glyph, lines []string, bgColor int) {
+func drawCenteredBox(scr [][]Glyph, lines []string, bgColor Color) {
 	linelen := len(lines[0])
 	for _, line := range lines {
 		if len(line) > linelen {
@@ -254,21 +177,3 @@ func copyStringAlignRight(dst []Glyph, src string) {
 		x++
 	}
 }
-
-const (
-	ColorBlack        = 0
-	ColorRed          = 1
-	ColorOlive        = 3
-	ColorBlue         = 4
-	ColorBrightRed    = 9
-	ColorBrightGreen  = 10
-	ColorBrightYellow = 11
-	ColorBrightBlue   = 12
-	ColorBrightPink   = 13
-	ColorTeal         = 14
-	ColorWhite        = 15
-	ColorDarkGreen    = 22
-	ColorDarkRed      = 52
-	ColorDiarrhea     = 58
-	ColorGray         = 237
-)

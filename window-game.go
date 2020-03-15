@@ -268,6 +268,16 @@ nextline:
 	copyString(scr[len(scr)-1], helpBar, true)
 }
 
+func (gw *GameWindow) Cursor() Coords {
+	up := gw.World.Up()
+	m, ok := up.(*Mob)
+	if !ok {
+		return OriginCoords
+	}
+	loc := m.Loc()
+	return loc.AsCoords()
+}
+
 func (gw *GameWindow) ShouldRemove() bool {
 	return gw.done
 }
@@ -349,7 +359,7 @@ func (gw *VictoryWindow) Render(scr [][]Glyph) {
 	} else {
 		lines = []string{"Victory!", "You defeated the enemies and descend deeper...", "", "Press ENTER to continue."}
 	}
-	drawCenteredBox(scr, lines, 17)
+	drawCenteredBox(scr, lines, ColorNavy)
 }
 
 func (gw *VictoryWindow) Cursor() Coords {
@@ -406,7 +416,7 @@ type GameWonWindow struct {
 func (gw *GameWonWindow) Render(scr [][]Glyph) {
 	score := fmt.Sprintf("Score: %d", gw.World.score)
 	lines := []string{"You win!", "Congratulations, you won the game.", score, "", "Press ENTER to see your final stats."}
-	drawCenteredBox(scr, lines, 17)
+	drawCenteredBox(scr, lines, ColorNavy)
 }
 
 func (gw *GameWonWindow) Cursor() Coords {

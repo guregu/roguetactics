@@ -144,9 +144,9 @@ func (gw *TeamWindow) Render(scr [][]Glyph) {
 	w.Flush()
 	lines := strings.Split(buf.String(), "\n")
 	lines = lines[:len(lines)-1]
-	color := 17
+	color := ColorNavy
 	if gw.Team.ID == AITeam {
-		color = 52
+		color = Color256(52)
 	}
 	drawCenteredBox(scr, lines, color)
 }

@@ -24,7 +24,7 @@ func (gw *BonusWindow) Render(scr [][]Glyph) {
 	if gw.choice != -1 {
 		copyString(scr[len(scr)-1], fmt.Sprintf(`Apply "%s" to %s? ENTER to confirm, ESC to cancel.`, gw.Bonuses[gw.choice].Name, gw.Team.Units[gw.choice].Name()), true)
 		for i := 0; i < len(scr[len(scr)-1]); i++ {
-			scr[len(scr)-1][i].BG = 53
+			scr[len(scr)-1][i].BG = Color256(53)
 		}
 	} else {
 		copyString(scr[len(scr)-1], "Press a, b, c, or d to pick a bonus.", true)
@@ -178,7 +178,7 @@ func (gw *BonusWindow) Render(scr [][]Glyph) {
 	w.Flush()
 	lines := strings.Split(buf.String(), "\n")
 	lines = lines[:len(lines)-1]
-	drawCenteredBox(scr, lines, 17)
+	drawCenteredBox(scr, lines, ColorNavy)
 }
 
 func (gw *BonusWindow) Cursor() Coords {

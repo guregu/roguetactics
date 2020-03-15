@@ -7,7 +7,7 @@ import (
 type Buff struct {
 	Name       string
 	Uniqueness Uniqueness
-	BG         int // background color to apply to mob
+	BG         Color // background color to apply to mob
 
 	DoT Damage // damage or healing over time. HoTs are applied when turn starts, DoTs when turn ends
 

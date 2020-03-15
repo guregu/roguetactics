@@ -30,8 +30,6 @@ const (
 var mainMap *Map
 
 type Sesh struct {
-	Coords
-
 	world *World
 	ui    []Window
 	win   *GameWindow

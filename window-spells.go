@@ -19,7 +19,7 @@ func (gw *SpellsWindow) Render(scr [][]Glyph) {
 		opt := string(rune('a' + i))
 		lines = append(lines, fmt.Sprintf("%s) %s (%d MP)", opt, spell.Name, spell.MPCost))
 	}
-	drawCenteredBox(scr, lines, 53)
+	drawCenteredBox(scr, lines, Color256(53))
 }
 
 func (gw *SpellsWindow) Cursor() Coords {

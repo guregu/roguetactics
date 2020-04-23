@@ -82,6 +82,13 @@ var weaponGreatsword = Weapon{
 	Value:  2,
 }
 
+var weaponExcaLUEbur = Weapon{
+	Name:   "excaLUEbur",
+	Damage: Damage{Dice: dicey.MustParse("3d6+4")},
+	Range:  1,
+	Value:  2,
+}
+
 var weaponFist = Weapon{
 	Name:   "fist",
 	Damage: Damage{Dice: dicey.MustParse("1d3")},

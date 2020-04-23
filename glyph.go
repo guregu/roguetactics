@@ -129,6 +129,10 @@ func StyleUnderline(g *Glyph) {
 	g.Underline = true
 }
 
+func StyleReverse(g *Glyph) {
+	g.Reverse = true
+}
+
 type Colors []Color
 
 func (c Colors) Swap(i, j int) {

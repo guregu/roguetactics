@@ -73,6 +73,7 @@ func (m *Map) TileAt(x, y int) *Tile {
 			Collides: true,
 			Ground:   GlyphOf(' '),
 			Objects:  make(map[ID]Object),
+			invalid:  true,
 		}
 	}
 	return m.Tiles[y][x]
@@ -230,6 +231,7 @@ type Tile struct {
 	Collides bool
 	X, Y     int
 	Map      *Map
+	invalid  bool
 }
 
 func (t *Tile) Add(obj Object) {
@@ -287,6 +289,10 @@ func (t *Tile) Glyph() Glyph {
 
 func (t *Tile) String() string {
 	return fmt.Sprintf("Tile(%s:%d,%d)", t.Map.Name, t.X, t.Y)
+}
+
+func (t *Tile) IsValid() bool {
+	return !t.invalid
 }
 
 func loadMap(name string) (*Map, error) {

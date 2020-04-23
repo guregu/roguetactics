@@ -470,7 +470,7 @@ var PlayerNames = []string{
 	"Ella",
 	"Kiffe",
 	"Stewart",
-	"Miepches",
+	"Meepches",
 	"Wes",
 	"Aaron",
 	"Grayson",

@@ -182,6 +182,11 @@ func (gw *TeamWindow) Input(input string) bool {
 }
 
 func (gw *TeamWindow) Click(_ Coords) bool {
+	if gw.Team.ID == PlayerTeam {
+		gw.Team = gw.World.battle.Teams[AITeam]
+	} else {
+		gw.done = true
+	}
 	return true
 }
 

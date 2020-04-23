@@ -96,7 +96,13 @@ func (mw *MoveWindow) Click(coords Coords) bool {
 	m := mw.World.Map(loc.Map)
 	path := m.FindPath(loc.X, loc.Y, coords.x, coords.y, mw.Char)
 	if len(path) > mw.Range {
-		mw.Sesh.Bell()
+		// TODO: idk if we should *always* cancel
+		if mw.callback != nil {
+			mw.callback(false)
+		}
+		mw.done = true
+
+		//mw.Sesh.Bell()
 		return true
 	}
 	if len(path) == 0 {

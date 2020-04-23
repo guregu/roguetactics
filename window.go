@@ -167,6 +167,17 @@ func copyStringOffset(dst []Glyph, src string, offset int) {
 	}
 }
 
+func copyGlyphsOffset(dst []Glyph, src []Glyph, offset int) {
+	x := 0
+	for _, g := range src {
+		if x >= len(dst) {
+			break
+		}
+		dst[x+offset] = g
+		x++
+	}
+}
+
 func copyStringAlignRight(dst []Glyph, src string) {
 	x := len(dst) - len(src)
 	for _, r := range src {

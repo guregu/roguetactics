@@ -59,17 +59,7 @@ func (gw *GameWindow) Input(in string) bool {
 			cursorHandler: newCursorHandlerOn(gw.World, gw.World.Up()),
 		})
 	case "r":
-		if !gw.moved {
-			return true
-		}
-		if gw.acted {
-			return true
-		}
-		if mob, ok := gw.World.Up().(*Mob); ok {
-			m := gw.World.Map(mob.Loc().Map)
-			m.Move(mob, gw.startLoc.X, gw.startLoc.Y)
-			gw.moved = false
-		}
+		return gw.resetMove()
 	case "t", "i", "\t":
 		gw.Sesh.PushWindow(&TeamWindow{
 			World: gw.World,
@@ -156,6 +146,19 @@ func (gw *GameWindow) showCast() bool {
 		if len(spells) == 0 {
 			return true
 		}
+
+		var actions = make([]MenuItem, 0, len(spells))
+		for _, spell := range spells {
+			actions = append(actions, MenuItem{
+				text: fmt.Sprintf("%s (%dMP)", spell.Name, spell.MPCost),
+				//action:
+			})
+		}
+
+		modal := newModalMenu(gw.World, gw.Sesh, "Cast which spell?\n", actions)
+		gw.Sesh.PushWindow(modal)
+		return true
+
 		gw.Sesh.PushWindow(&SpellsWindow{
 			World: gw.World,
 			Sesh:  gw.Sesh,
@@ -184,6 +187,53 @@ func (gw *GameWindow) showCast() bool {
 	return true
 }
 
+func (gw *GameWindow) showCastContext(target *Mob) bool {
+	if gw.acted {
+		return true
+	}
+	up := gw.World.Up()
+	if m, ok := up.(*Mob); ok {
+		spells := m.Spells()
+		if len(spells) == 0 {
+			return true
+		}
+
+		cbfunc := func(spell Weapon) func() {
+			return func() {
+				loc := m.Loc()
+
+				gw.Sesh.PushWindow(&AttackWindow{
+					World:         gw.World,
+					Sesh:          gw.Sesh,
+					Char:          m,
+					Weapon:        spell,
+					Self:          true,
+					cursorHandler: newCursorHandler(loc.AsCoords(), gw.World.Map(loc.Map)),
+					callback: func(acted bool) {
+						if acted {
+							gw.acted = true
+							if !gw.canDoSomething() {
+								gw.nextTurn()
+							}
+						}
+					}})
+			}
+		}
+
+		var actions = make([]MenuItem, 0, len(spells))
+		for _, spell := range spells {
+			actions = append(actions, MenuItem{
+				text:   fmt.Sprintf("%s (%dMP)", spell.Name, spell.MPCost),
+				action: cbfunc(spell),
+			})
+		}
+
+		modal := newContextMenu(gw.World, gw.Sesh, target.Loc().AsCoords(), actions)
+		gw.Sesh.PushWindow(modal)
+	}
+	return true
+}
+
 func (gw *GameWindow) nextTurn() bool {
 	up := gw.World.Up()
 	if m, ok := up.(*Mob); ok {
@@ -200,6 +250,21 @@ func (gw *GameWindow) nextTurn() bool {
 
 func (gw *GameWindow) canDoSomething() bool {
 	return !gw.moved || !gw.acted
+}
+
+func (gw *GameWindow) resetMove() bool {
+	if !gw.moved {
+		return true
+	}
+	if gw.acted {
+		return true
+	}
+	if mob, ok := gw.World.Up().(*Mob); ok {
+		m := gw.World.Map(mob.Loc().Map)
+		m.Move(mob, gw.startLoc.X, gw.startLoc.Y)
+		gw.moved = false
+	}
+	return true
 }
 
 func (gw *GameWindow) Render(scr [][]Glyph) {
@@ -309,14 +374,83 @@ func (gw *GameWindow) Click(click Coords) bool {
 	up := gw.World.Up()
 	uploc := up.Loc()
 	if uploc.X == click.x && uploc.Y == click.y {
-		return gw.showMove()
+		var items []MenuItem
+		if !gw.moved {
+			items = append(items, MenuItem{
+				text: "Move",
+				action: func() {
+					gw.showMove()
+				},
+			})
+		}
+		if !gw.acted {
+			if gw.moved {
+				items = append(items, MenuItem{
+					text: "Reset move",
+					action: func() {
+						gw.resetMove()
+					},
+				})
+			}
+			items = append(items, MenuItem{
+				text: "Attack",
+				action: func() {
+					gw.showAttack()
+				},
+			})
+			if mob, ok := up.(*Mob); ok && len(mob.Spells()) > 0 {
+				items = append(items, MenuItem{
+					text: "Cast spell",
+					action: func() {
+						gw.showCastContext(mob)
+					},
+				})
+			}
+		}
+		items = append(items, MenuItem{
+			text: "Team status",
+			action: func() {
+				gw.Sesh.PushWindow(&TeamWindow{
+					World: gw.World,
+					Sesh:  gw.Sesh,
+					Team:  gw.World.battle.Teams[PlayerTeam],
+				})
+			},
+		})
+		cm := newContextMenu(gw.World, gw.Sesh, click, items)
+		gw.Sesh.PushWindow(cm)
+		return true
 	}
 
 	tile := gw.Map.TileAt(click.x, click.y)
-	if mob, ok := tile.Top().(*Mob); ok {
-		if mob.Team() != gw.Team {
-			return gw.showAttack()
+	if target, ok := tile.Top().(*Mob); ok {
+		// return gw.showAttack()
+		if gw.acted {
+			return true
 		}
+		items := []MenuItem{
+			MenuItem{
+				text: "Attack",
+				action: func() {
+					gw.showAttack()
+				},
+			},
+		}
+		if mob, ok := up.(*Mob); ok && len(mob.Spells()) > 0 {
+			items = append(items, MenuItem{
+				text: "Cast spell",
+				action: func() {
+					gw.showCastContext(target)
+				},
+			})
+		}
+		cm := newContextMenu(gw.World, gw.Sesh, click, items)
+		gw.Sesh.PushWindow(cm)
+		return true
+	}
+
+	if !tile.HasCollider() {
+		return gw.showMove()
 	}
 	return true
 }

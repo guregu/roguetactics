@@ -147,18 +147,6 @@ func (gw *GameWindow) showCast() bool {
 			return true
 		}
 
-		var actions = make([]MenuItem, 0, len(spells))
-		for _, spell := range spells {
-			actions = append(actions, MenuItem{
-				text: fmt.Sprintf("%s (%dMP)", spell.Name, spell.MPCost),
-				//action:
-			})
-		}
-
-		modal := newModalMenu(gw.World, gw.Sesh, "Cast which spell?\n", actions)
-		gw.Sesh.PushWindow(modal)
-		return true
-
 		gw.Sesh.PushWindow(&SpellsWindow{
 			World: gw.World,
 			Sesh:  gw.Sesh,

@@ -60,7 +60,12 @@ func (mw *FarlookWindow) Input(input string) bool {
 	return mw.cursorInput(input)
 }
 
-func (mw *FarlookWindow) Click(_ Coords) bool {
+func (mw *FarlookWindow) Click(coords Coords) bool {
+	tile := mw.World.current.TileAt(coords.x, coords.y)
+	if !tile.IsValid() {
+		return true
+	}
+	fmt.Printf("Tile: %v %#v\n", coords, tile)
 	// TODO: popup detailed info window
 	return true
 }

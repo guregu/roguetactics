@@ -17,6 +17,7 @@ type Weapon struct {
 	HitboxSize int
 	MPCost     int
 	HitGlyph   *Glyph
+	Cooldown   int
 
 	OnHit      func(w *World, caster *Mob, target *Mob)
 	projectile func() Object

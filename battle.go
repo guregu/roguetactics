@@ -113,6 +113,7 @@ var classBase = map[Class]Mob{
 		armor:  armorLeather,
 		spells: []Weapon{
 			spellTaunt,
+			spellCharge,
 		},
 	},
 	"Archer": Mob{
@@ -172,7 +173,9 @@ func randomMap(level int) string {
 
 var mapsByLevel = [][]string{
 	{
-		"oneroom",
+		// "oneroom",
+		"courtyard",
+		// "islandfort",
 	},
 	{
 		"split",
@@ -591,4 +594,5 @@ var PlayerNames = []string{
 	"Carmine",
 	"Kytel",
 	"Wilbur",
+	"Cordelia",
 }

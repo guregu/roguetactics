@@ -6,6 +6,7 @@ import (
 	"io"
 	// "os"
 	"encoding/json"
+	"math/rand"
 	"path/filepath"
 	"strings"
 
@@ -26,15 +27,53 @@ type MapMeta struct {
 	Name   string
 	Width  int
 	Height int
-	Glyphs map[string]struct {
-		FG      Color256
-		BG      Color256
-		Collide bool
-	}
-	BG [][]Color256
+	Glyphs map[string]MetaGlyphDef
+	BG     [][]Color256
 
 	Teams       int
 	SpawnPoints [][][2]int
+	SpawnGlyphs []string
+}
+
+type MetaGlyphDef struct {
+	FG      Color
+	BG      Color
+	Collide bool
+	Replace string
+}
+
+func (gd *MetaGlyphDef) UnmarshalJSON(data []byte) error {
+	convert := func(rawcolor json.RawMessage) Color {
+		if len(rawcolor) == 0 {
+			return nil
+		}
+		if rawcolor[0] == '[' {
+			var rgb ColorRGB
+			if err := json.Unmarshal(rawcolor, &rgb); err != nil {
+				panic(err)
+			}
+			return rgb
+		}
+		var xterm Color256
+		if err := json.Unmarshal(rawcolor, &xterm); err != nil {
+			panic(err)
+		}
+		return xterm
+	}
+
+	raw := struct {
+		FG, BG  json.RawMessage
+		Collide bool
+		Replace string
+	}{}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	gd.FG = convert(raw.FG)
+	gd.BG = convert(raw.BG)
+	gd.Collide = raw.Collide
+	gd.Replace = raw.Replace
+	return nil
 }
 
 func (m *Map) NewTile(glyph Glyph, collides bool, x, y int) *Tile {
@@ -326,6 +365,7 @@ func loadMap(name string) (*Map, error) {
 		Objects: make(map[ID]Object),
 		Meta:    meta,
 	}
+	m.SpawnPoints = make([][]Loc, meta.Teams)
 	var x, y int
 	for {
 		line, _, err := r.ReadLine()
@@ -335,8 +375,20 @@ func loadMap(name string) (*Map, error) {
 				// if x > meta.Width {
 				// 	continue
 				// }
+				switch r {
+				case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+					n := int(r - '0')
+					m.SpawnPoints[n] = append(m.SpawnPoints[n], Loc{Map: m.Name, X: x, Y: y})
+					if n < len(meta.SpawnGlyphs) {
+						opts := []rune(meta.SpawnGlyphs[n])
+						r = opts[rand.Intn(len(opts))]
+					} else {
+						r = '.'
+					}
+				}
 				glyph := GlyphOf(r)
 				collides := false
+				var replace string
 				for glyphs, info := range meta.Glyphs {
 					if !strings.ContainsRune(glyphs, r) {
 						continue
@@ -344,15 +396,24 @@ func loadMap(name string) (*Map, error) {
 					if info.Collide {
 						collides = info.Collide
 					}
-					if info.FG != 0 {
+					if info.FG != nil {
 						glyph.FG = info.FG
 					}
-					if info.BG != 0 {
+					if info.BG != nil {
 						glyph.BG = info.BG
+					}
+					if info.Replace != "" {
+						fmt.Println("REPPP", info.Replace)
+						replace += info.Replace
 					}
 				}
 				if meta.BG != nil {
 					glyph.BG = meta.BG[y][x]
+				}
+				if len(replace) > 0 {
+					fmt.Println("REPLACE", replace)
+					runes := []rune(replace)
+					glyph.Rune = runes[rand.Intn(len(runes))]
 				}
 				tile := m.NewTile(glyph, collides, x, y)
 				tline = append(tline, tile)
@@ -375,7 +436,13 @@ func loadMap(name string) (*Map, error) {
 			return nil, err
 		}
 	}
-	m.SpawnPoints = make([][]Loc, meta.Teams)
+	for y := len(m.Tiles); y < meta.Height; y++ {
+		var tline []*Tile
+		for x := 0; x < meta.Width; x++ {
+			tline = append(tline, m.NewTile(GlyphOf(' '), true, x, y))
+		}
+		m.Tiles = append(m.Tiles, tline)
+	}
 	for i, spawns := range meta.SpawnPoints {
 		for _, spawn := range spawns {
 			m.SpawnPoints[i] = append(m.SpawnPoints[i], Loc{Map: m.Name, X: spawn[0], Y: spawn[1]})

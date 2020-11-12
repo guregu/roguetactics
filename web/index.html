@@ -4,7 +4,8 @@
 	<meta charset="utf-8">
 	<title>Tactics: Roguer</title>
 	<link rel="stylesheet" href="xterm.css">
-	<script src="https://unpkg.com/xterm"></script>
+	<link rel='stylesheet' href='hack.css'>
+	<script src="xterm.js"></script>
 	<script src="wasm_exec.js"></script>
 </head>
 <body style="margin: 0; background: #afbfd2;">
@@ -67,52 +68,56 @@
 			</ul>
 		</div>
     	<script>
-	        	var term = new Terminal({rows: 27, cols: 80});
-	        	term.open(document.getElementById('terminal'));
-	        	term.write('Loading... please wait :-)')
+    			var fontpromise = document.fonts.load('15pt "Hack"').then(loadGame);
+    			var term = new Terminal({rows: 27, cols: 80, fontFamily: 'Hack, courier-new, courier, monospace'});
+    			function loadGame() {
+		        	
+		        	term.open(document.getElementById('terminal'));
+		        	term.write('Loading... please wait :-)')
 
-	        	const go = new Go();
-	        				// WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((result) => {
-	        				// 	go.run(result.instance);
-	        				// });
-	        	
-	        	var filesize = null;
-	        	var fsxhr = new XMLHttpRequest();
-	        	fsxhr.open("HEAD", "main.wasm");
-	        	fsxhr.onload = function() {
-	        		filesize = Number(fsxhr.getResponseHeader('Content-Length')) * 4;
-	        	}
-	        	fsxhr.send(null);
+		        	const go = new Go();
+		        				// WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((result) => {
+		        				// 	go.run(result.instance);
+		        				// });
+		        	
+		        	var filesize = null;
+		        	var fsxhr = new XMLHttpRequest();
+		        	fsxhr.open("HEAD", "main.wasm");
+		        	fsxhr.onload = function() {
+		        		filesize = Number(fsxhr.getResponseHeader('Content-Length')) * 4;
+		        	}
+		        	fsxhr.send(null);
 
-    			var xhr = new XMLHttpRequest();
-    			xhr.responseType = "arraybuffer";
-				xhr.open("GET", "main.wasm");
-				var lastprogress = 0;
-				xhr.onprogress = function(evt) {
-					var prog = Math.floor(event.loaded/1000);
-					var msg = "\r\nDownloaded: " + prog + "KB";
-					if (filesize) {
-						msg += " " + Math.floor(event.loaded/filesize * 100) + "%";
+	    			var xhr = new XMLHttpRequest();
+	    			xhr.responseType = "arraybuffer";
+					xhr.open("GET", "main.wasm");
+					var lastprogress = 0;
+					xhr.onprogress = function(evt) {
+						var prog = Math.floor(event.loaded/1000);
+						var msg = "\r\nDownloaded: " + prog + "KB";
+						if (filesize) {
+							msg += " " + Math.floor(event.loaded/filesize * 100) + "%";
+						}
+						if (prog > lastprogress) {
+							term.write(msg);
+							lastprogress = prog;
+						}
 					}
-					if (prog > lastprogress) {
-						term.write(msg);
-						lastprogress = prog;
+					xhr.onload = function() {
+						if (xhr.status == 200) {
+							term.write("\r\nStarting game, please wait...")
+							WebAssembly.instantiate(xhr.response, go.importObject).then(obj => {
+				        	    go.run(obj.instance);
+				        	    term.focus();
+				        	});
+						} else {
+							alert("failed dl")
+						}
 					}
+					xhr.send(null);
+
+					term.focus();
 				}
-				xhr.onload = function() {
-					if (xhr.status == 200) {
-						term.write("\r\nStarting game, please wait...")
-						WebAssembly.instantiate(xhr.response, go.importObject).then(obj => {
-			        	    go.run(obj.instance);
-			        	    term.focus();
-			        	});
-					} else {
-						alert("failed dl")
-					}
-				}
-				xhr.send(null);
-
-				term.focus();
     	</script>
 	</main>
 </body>

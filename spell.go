@@ -194,6 +194,70 @@ var spellTaunt = Weapon{
 	},
 }
 
+var spellCharge = Weapon{
+	Name:      "charge",
+	Damage:    Damage{Type: DamageNone},
+	Range:     9,
+	Targeting: TargetingFree,
+	Magic:     true,
+	Hitbox:    HitboxSingle,
+	// HitGlyph:  &Glyph{Rune: '!', SGR: SGR{FG: ColorDarkRed}},
+	OnHit: func(w *World, source *Mob, target *Mob) {
+		m := w.Map(source.Loc().Map)
+		path := m.FindPathNextTo(source, target)
+		switch len(path) {
+		case 0:
+			w.Broadcast("Something is in the way.")
+			return
+		case 1:
+			w.Broadcast("Too close.")
+			return
+		}
+
+		w.Broadcast(
+			source.NameColored(),
+			" charges at ",
+			target.NameColored(),
+			"!",
+		)
+
+		w.push <- &MoveState{
+			Obj:  source,
+			Path: path,
+		}
+
+		// if source.Team() == target.Team() {
+		// 	w.Broadcast(
+		// 		source.NameColored(),
+		// 		" tries to taunt ",
+		// 		target.NameColored(),
+		// 		", but they laugh instead.",
+		// 	)
+		// 	return
+		// }
+		// buff := newBuff("taunt", UniqueReplace, -1, 0)
+		// buff.BG = Color256(166)
+		// buff.OnApply = func(w *World, m *Mob, src *Mob) {
+		// 	m.tauntedBy = src
+		// 	w.Broadcast(
+		// 		src.NameColored(),
+		// 		" taunted ",
+		// 		m.NameColored(),
+		// 		".",
+		// 	)
+		// }
+		// buff.OnTakeTurn = func(w *World, m *Mob) {
+		// 	if m.tauntedBy != nil && m.tauntedBy.Dead() {
+		// 		buff.Life = 0
+		// 	}
+		// }
+		// buff.OnRemove = func(w *World, m *Mob) {
+		// 	m.tauntedBy = nil
+		// }
+		// target.ApplyBuff(w, buff, source)
+	},
+}
+
 var spellCripple = Weapon{
 	Name:      "aim: legs",
 	Damage:    Damage{Type: DamageNone},

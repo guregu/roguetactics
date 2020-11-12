@@ -75,6 +75,7 @@ type Mob struct {
 
 	tauntedBy *Mob
 	buffs     map[*Buff]struct{}
+	cooldowns map[string]int
 }
 
 type Stats struct {
@@ -95,6 +96,7 @@ func (m *Mob) Reset(w *World) {
 	m.acted = false
 	m.tauntedBy = nil
 	m.buffs = make(map[*Buff]struct{})
+	m.cooldowns = make(map[string]int)
 	m.refreshStats(w)
 	m.bgIdx = 0
 }
@@ -178,6 +180,15 @@ func (m *Mob) TakeTurn(w *World) {
 		}
 	}
 	m.refreshStats(w)
+
+	for name, cd := range m.cooldowns {
+		cd--
+		if cd <= 0 {
+			delete(m.cooldowns, name)
+		} else {
+			m.cooldowns[name] = cd
+		}
+	}
 
 	// TODO: move this to buff system somehow
 	if m.tauntedBy != nil && m.tauntedBy.Dead() {

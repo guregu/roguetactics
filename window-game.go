@@ -405,6 +405,12 @@ func (gw *GameWindow) Click(click Coords) bool {
 				})
 			},
 		})
+		items = append(items, MenuItem{
+			text: "Skip turn",
+			action: func() {
+				gw.nextTurn()
+			},
+		})
 		cm := newContextMenu(gw.World, gw.Sesh, click, items)
 		gw.Sesh.PushWindow(cm)
 		return true

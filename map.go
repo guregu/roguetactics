@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"path"
+
 	// "os"
 	"encoding/json"
 	"math/rand"
-	"path/filepath"
 	"strings"
 
 	"github.com/nickdavies/go-astar/astar"
@@ -335,7 +336,7 @@ func (t *Tile) IsValid() bool {
 }
 
 func loadMap(name string) (*Map, error) {
-	filename := filepath.Join("maps", name+".map")
+	filename := path.Join("maps", name+".map")
 	f, err := open(filename)
 	if err != nil {
 		return nil, err

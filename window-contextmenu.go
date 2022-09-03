@@ -122,6 +122,12 @@ func (cm *ContextMenu) Input(in string) bool {
 }
 
 func (cm *ContextMenu) Click(coords Coords) bool {
+	// oob click = dismiss
+	if coords.y < cm.topLeft.y || coords.y >= cm.topLeft.y+cm.height-1 ||
+		coords.x < cm.topLeft.x || coords.x > cm.topLeft.x+cm.width+1 {
+		cm.done = true
+		return true
+	}
 	if cm.selected == 0 {
 		return true
 	}

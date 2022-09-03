@@ -6,8 +6,7 @@ import (
 	"math/rand"
 	"strings"
 	"time"
-
-	"github.com/gliderlabs/ssh"
+	// "git.sr.ht/~mna/zzterm" // TODO: use this instead of parsing ansi seqs manually
 )
 
 const (
@@ -43,10 +42,6 @@ func NewSesh(s Conn, w *World) *Sesh {
 		ssh:   s,
 		disp:  NewDisplay(80, 27),
 	}
-}
-
-func (sesh *Sesh) resize(win ssh.Window) {
-	fmt.Println("resize:", win.Width, win.Height)
 }
 
 func (sesh *Sesh) do(input string) {
@@ -156,7 +151,22 @@ func (sesh *Sesh) cleanup() {
 }
 
 func (sesh *Sesh) Run() {
-	runSesh(sesh)
+	defer sesh.cleanup()
+	sesh.setup()
+
+	buf := make([]byte, 256)
+	for {
+		n, err := sesh.ssh.Read(buf[:])
+		if err != nil {
+			fmt.Println("Error: 1", err)
+			sesh.ssh.Exit(1)
+			break
+		}
+		if n > 0 {
+			sesh.do(string(buf[:n]))
+			fmt.Println("GOT:", buf[:n], ">>>", strings.ReplaceAll(string(buf[:n]), "\033", "ESC"))
+		}
+	}
 }
 
 func main() {

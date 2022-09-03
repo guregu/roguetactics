@@ -173,8 +173,9 @@ func randomMap(level int) string {
 
 var mapsByLevel = [][]string{
 	{
-		// "oneroom",
-		"courtyard",
+		"oneroom",
+		// TODO: implement these ↓
+		// "courtyard",
 		// "islandfort",
 	},
 	{
